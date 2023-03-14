@@ -6,6 +6,7 @@ add_executable(qr_detection_and_pose_estimation
 target_link_libraries(qr_detection_and_pose_estimation
   depthai::core
   ${OpenCV_LIBS}
+  zbar
 )
 ament_target_dependencies(qr_detection_and_pose_estimation
   "rclcpp"
