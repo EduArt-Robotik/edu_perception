@@ -1,13 +1,19 @@
 cmake_minimum_required(VERSION 3.8)
-project(edu_perception)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-  add_compile_options(-Wall -Wextra -Wpedantic)
+  add_compile_options(-Wall -Wextra -Wpedantic -std=c++1z)
 endif()
+
+# Add depthai-core dependency
+add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/depthai-core EXCLUDE_FROM_ALL)
+
+# project start here
+project(edu_perception)
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(rclcpp)
+find_package(rclcpp REQUIRED)
+find_package(geometry_msgs REQUIRED)
 
 add_subdirectory(src/node)
 
