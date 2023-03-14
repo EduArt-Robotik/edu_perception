@@ -30,6 +30,7 @@ using std::chrono::duration;
 using std::chrono::seconds;
 using std::chrono::milliseconds;
 using std::chrono::round;
+using namespace std::chrono_literals;
 
 QrDetectionAndPoseEstimation::Parameter QrDetectionAndPoseEstimation::get_parameter(
   rclcpp::Node &ros_node, const Parameter& default_parameter)
@@ -52,9 +53,9 @@ QrDetectionAndPoseEstimation::QrDetectionAndPoseEstimation()
 {
   setupCameraPipeline(_parameter);
 
-  const auto timer_period = round<milliseconds>(duration<float>{1.0f / _parameter.camera.fps});
+  // const auto timer_period = round<milliseconds>(duration<float>{1.0f / _parameter.camera.fps});
   _timer_processing_camera = create_wall_timer(
-    timer_period, std::bind(&QrDetectionAndPoseEstimation::callbackProcessingCamera, this)
+    1ms, std::bind(&QrDetectionAndPoseEstimation::callbackProcessingCamera, this)
   );
 }
 
@@ -99,7 +100,7 @@ static QrCode decode_qr_code(const cv::Mat& image, const std::string& qr_text_fi
 
 static void draw_polygon_on_image(cv::Mat& image, const QrCode& qr_code)
 {
-  cv::polylines(image, qr_code.point, true, cv::Scalar(255, 0, 0), 3, cv::LINE_8);
+  cv::polylines(image, qr_code.point, true, cv::Scalar(255), 3, cv::LINE_8);
 }
 
 void QrDetectionAndPoseEstimation::callbackProcessingCamera()
@@ -107,11 +108,16 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
   try {
     const auto image_frame_left = _output_queue[Camera::Left]->get<dai::ImgFrame>();
     const auto image_frame_right = _output_queue[Camera::Right]->get<dai::ImgFrame>();
+
+    if (image_frame_left == nullptr || image_frame_right == nullptr) {
+      return;
+    }
+
     cv::Mat cv_frame_left(
       image_frame_left->getHeight(), image_frame_left->getWidth(), CV_8UC1, image_frame_left->getData().data()
     );
     cv::Mat cv_frame_right(
-      image_frame_left->getHeight(), image_frame_left->getWidth(), CV_8UC1, image_frame_left->getData().data()
+      image_frame_right->getHeight(), image_frame_right->getWidth(), CV_8UC1, image_frame_right->getData().data()
     );
 
     const auto qr_code_left = decode_qr_code(
@@ -163,8 +169,8 @@ void QrDetectionAndPoseEstimation::setupCameraPipeline(const Parameter parameter
 
   // Initialize device and data queues.
   _camera_device = std::make_shared<dai::Device>(*_camera_pipeline);
-  _output_queue[Camera::Left] = _camera_device->getOutputQueue("camera_left");
-  _output_queue[Camera::Right] = _camera_device->getOutputQueue("camera_right");
+  _output_queue[Camera::Left] = _camera_device->getOutputQueue("camera_left", 2, true);
+  _output_queue[Camera::Right] = _camera_device->getOutputQueue("camera_right", 2, true);
 }
 
 } // end namespace perception

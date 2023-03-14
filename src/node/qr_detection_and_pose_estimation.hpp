@@ -37,7 +37,7 @@ class QrDetectionAndPoseEstimation : public rclcpp::Node
 public:
   struct Parameter {
     struct {
-      float fps = 10.0f;
+      float fps = 5.0f;
     } camera;
     std::string qr_text_filter = "Eduard";
   };
