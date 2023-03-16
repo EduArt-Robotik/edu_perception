@@ -5,6 +5,8 @@
  */
 #pragma once
 
+#include <edu_perception/stereo_inference.hpp>
+
 #include <rclcpp/node.hpp>
 #include <rclcpp/publisher.hpp>
 
@@ -62,6 +64,7 @@ private:
   Parameter _parameter;
   std::shared_ptr<dai::Pipeline> _camera_pipeline;
   std::shared_ptr<dai::Device> _camera_device;
+  std::unique_ptr<StereoInference> _stereo_inference;
 
   // \todo check if it is necessary to keep depthai objects alive, because it seems the pipeline keeps also
   //       a copy of the shared pointer.

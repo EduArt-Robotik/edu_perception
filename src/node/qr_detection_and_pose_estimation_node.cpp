@@ -1,3 +1,4 @@
+#include "edu_perception/stereo_inference.hpp"
 #include "qr_detection_and_pose_estimation.hpp"
 
 // #include "depthai-shared/common/CameraBoardSocket.hpp"
@@ -7,9 +8,6 @@
 // #include "depthai/pipeline/node/MonoCamera.hpp"
 // #include "depthai/pipeline/node/XLinkOut.hpp"
 
-#include <cstddef>
-#include <opencv2/core/types.hpp>
-#include <opencv2/imgproc.hpp>
 #include <rclcpp/executors.hpp>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/node.hpp>
@@ -22,6 +20,7 @@
 
 #include <chrono>
 #include <memory>
+#include <cstddef>
 
 namespace eduart {
 namespace perception {
@@ -52,8 +51,17 @@ QrDetectionAndPoseEstimation::QrDetectionAndPoseEstimation()
   , _qr_code_scanner(std::make_shared<zbar::ImageScanner>())
 {
   setupCameraPipeline(_parameter);
+  const StereoInference::Parameter stereo_inference_parameter{
+    static_cast<std::size_t>(_camera[Camera::Left]->getResolutionWidth()),
+    static_cast<std::size_t>(_camera[Camera::Left]->getResolutionHeight()),
+    static_cast<std::size_t>(_camera[Camera::Left]->getResolutionWidth()),
+    static_cast<std::size_t>(_camera[Camera::Left]->getResolutionHeight()) 
+  };
+  _stereo_inference = std::make_unique<StereoInference>(_camera_device, stereo_inference_parameter);
+  // _qr_code_scanner->set_config(zbar::ZBAR_QRCODE, zbar::ZBAR_CFG_ENABLE, 1);
 
   // const auto timer_period = round<milliseconds>(duration<float>{1.0f / _parameter.camera.fps});
+  // run with 1ms interval to try getting faster than camera delivers (queues configured to block...)
   _timer_processing_camera = create_wall_timer(
     1ms, std::bind(&QrDetectionAndPoseEstimation::callbackProcessingCamera, this)
   );
@@ -101,6 +109,11 @@ static QrCode decode_qr_code(const cv::Mat& image, const std::string& qr_text_fi
 static void draw_polygon_on_image(cv::Mat& image, const QrCode& qr_code)
 {
   cv::polylines(image, qr_code.point, true, cv::Scalar(255), 3, cv::LINE_8);
+  std::cout << "Qr Code: " << qr_code.text << std::endl;
+  for (const auto& point : qr_code.point) {
+    std::cout << "point: x = " << point.x << ", y = " << point.y << std::endl;
+  }
+  std::cout << std::endl;
 }
 
 void QrDetectionAndPoseEstimation::callbackProcessingCamera()
@@ -126,6 +139,16 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
     const auto qr_code_right = decode_qr_code(
       cv_frame_right, _parameter.qr_text_filter, *_qr_code_scanner
     );
+    std::cout << "Es beginnt..." << std::endl;
+    for (std::size_t i = 0; i < qr_code_left.point.size(); ++i) {
+      const auto spatial = _stereo_inference->estimateSpatial(
+        Eigen::Vector2i(qr_code_left.point[i].x, qr_code_left.point[i].y),
+        Eigen::Vector2i(qr_code_right.point[i].x, qr_code_right.point[i].y)
+      );
+      std::cout << "spatial:\n" << spatial << std::endl;
+    }
+
+
     draw_polygon_on_image(cv_frame_left, qr_code_left);
     draw_polygon_on_image(cv_frame_right, qr_code_right);
     cv::imshow("left", cv_frame_left);

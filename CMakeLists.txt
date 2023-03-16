@@ -17,7 +17,10 @@ find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
+find_package(Eigen3 REQUIRED NO_MODULE)
 
+# Building Subdirectories
+add_subdirectory(src/lib)
 add_subdirectory(src/node)
 
 ## Installing of Content
