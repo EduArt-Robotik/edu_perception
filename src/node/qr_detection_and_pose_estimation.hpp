@@ -31,6 +31,10 @@ namespace zbar {
 class ImageScanner;
 } // end namespace zbar
 
+namespace cv {
+class QRCodeDetector;
+}
+
 namespace eduart {
 namespace perception {
 
@@ -42,6 +46,8 @@ public:
       float fps = 5.0f;
     } camera;
     std::string qr_text_filter = "Eduard";
+    std::string frame_id = "qr_code_camera";
+    bool debugging_on = true;
   };
 
   static Parameter get_parameter(rclcpp::Node& ros_node, const Parameter& default_parameter);
@@ -73,6 +79,7 @@ private:
   std::array<std::shared_ptr<dai::DataOutputQueue>, Camera::Count> _output_queue;
 
   std::shared_ptr<zbar::ImageScanner> _qr_code_scanner;
+  std::shared_ptr<cv::QRCodeDetector> _qr_code_detector;
 
   std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>> _pub_pose;
   std::shared_ptr<rclcpp::TimerBase> _timer_processing_camera;

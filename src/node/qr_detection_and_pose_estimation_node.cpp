@@ -1,12 +1,7 @@
 #include "edu_perception/stereo_inference.hpp"
 #include "qr_detection_and_pose_estimation.hpp"
 
-// #include "depthai-shared/common/CameraBoardSocket.hpp"
-// #include "depthai-shared/properties/MonoCameraProperties.hpp"
-// #include "depthai/device/Device.hpp"
-// #include "depthai/pipeline/Pipeline.hpp"
-// #include "depthai/pipeline/node/MonoCamera.hpp"
-// #include "depthai/pipeline/node/XLinkOut.hpp"
+#include <Eigen/Geometry>
 
 #include <rclcpp/executors.hpp>
 #include <rclcpp/logging.hpp>
@@ -38,9 +33,11 @@ QrDetectionAndPoseEstimation::Parameter QrDetectionAndPoseEstimation::get_parame
 
   ros_node.declare_parameter<float>("camera.fps", default_parameter.camera.fps);
   ros_node.declare_parameter<std::string>("qr_text_filter", default_parameter.qr_text_filter);
+  ros_node.declare_parameter<bool>("debugging_on", default_parameter.debugging_on);
 
   parameter.camera.fps = ros_node.get_parameter("camera.fps").as_double();
   parameter.qr_text_filter = ros_node.get_parameter("qr_text_filter").as_string();
+  parameter.debugging_on = ros_node.get_parameter("debugging_on").as_bool();
 
   return parameter;
 }
@@ -49,6 +46,7 @@ QrDetectionAndPoseEstimation::QrDetectionAndPoseEstimation()
   : rclcpp::Node("qr_detection_and_pose_estimation")
   , _parameter(get_parameter(*this, Parameter()))
   , _qr_code_scanner(std::make_shared<zbar::ImageScanner>())
+  , _qr_code_detector(std::make_shared<cv::QRCodeDetector>())
 {
   setupCameraPipeline(_parameter);
   const StereoInference::Parameter stereo_inference_parameter{
@@ -59,6 +57,8 @@ QrDetectionAndPoseEstimation::QrDetectionAndPoseEstimation()
   };
   _stereo_inference = std::make_unique<StereoInference>(_camera_device, stereo_inference_parameter);
   // _qr_code_scanner->set_config(zbar::ZBAR_QRCODE, zbar::ZBAR_CFG_ENABLE, 1);
+
+  _pub_pose = create_publisher<geometry_msgs::msg::PoseStamped>("qr_code_pose", rclcpp::SensorDataQoS());
 
   // const auto timer_period = round<milliseconds>(duration<float>{1.0f / _parameter.camera.fps});
   // run with 1ms interval to try getting faster than camera delivers (queues configured to block...)
@@ -106,6 +106,21 @@ static QrCode decode_qr_code(const cv::Mat& image, const std::string& qr_text_fi
   throw std::runtime_error("No expected QR code found.");
 }
 
+static QrCode decode_qr_code(const cv::Mat& image, const std::string& qr_text_filter, cv::QRCodeDetector& detector)
+{
+  QrCode qr_code;
+  std::vector<cv::Point2i> points;
+  qr_code.text = detector.detectAndDecode(image, points);
+  std::copy(points.begin(), points.end(), qr_code.point.begin());
+
+  for (const auto& point : qr_code.point) {
+    std::cout << "point: x = " << point.x << ", y = " << point.y << std::endl;
+  }
+  std::cout << std::endl;
+
+  return qr_code;
+}
+
 static void draw_polygon_on_image(cv::Mat& image, const QrCode& qr_code)
 {
   cv::polylines(image, qr_code.point, true, cv::Scalar(255), 3, cv::LINE_8);
@@ -114,6 +129,45 @@ static void draw_polygon_on_image(cv::Mat& image, const QrCode& qr_code)
     std::cout << "point: x = " << point.x << ", y = " << point.y << std::endl;
   }
   std::cout << std::endl;
+}
+
+static geometry_msgs::msg::Pose estimate_pose_of_qr_code(
+  const StereoInference& inference, const QrCode& left_qr_code, const QrCode& right_qr_code)
+{
+  // Matching points are: point[0] --> point[1] == x axis
+  //                      point[0] --> point[3] == y axis
+  const Eigen::Vector3d origin = inference.estimateSpatial(
+    Eigen::Vector2i(left_qr_code.point[0].x, left_qr_code.point[0].y),
+    Eigen::Vector2i(right_qr_code.point[0].x, right_qr_code.point[0].y)
+  );
+  const Eigen::Vector3d end_point_x_axis = inference.estimateSpatial(
+    Eigen::Vector2i(left_qr_code.point[1].x, left_qr_code.point[1].y),
+    Eigen::Vector2i(right_qr_code.point[1].x, right_qr_code.point[1].y)
+  );
+  const Eigen::Vector3d end_point_y_axis = inference.estimateSpatial(
+    Eigen::Vector2i(left_qr_code.point[3].x, left_qr_code.point[3].y),
+    Eigen::Vector2i(right_qr_code.point[3].x, right_qr_code.point[3].y)
+  );
+  const Eigen::Vector3d middle_point = (end_point_x_axis + end_point_y_axis) * 0.5;
+  const Eigen::Vector3d x_axis = end_point_x_axis - origin;
+  const Eigen::Vector3d y_axis = end_point_y_axis - origin;
+  const Eigen::Vector3d z_axis = x_axis.cross(y_axis);
+  std::cout << "x_axis:\n" << x_axis << std::endl;
+  std::cout << "y_axis:\n" << y_axis << std::endl;
+  const Eigen::Quaterniond orientation = Eigen::Quaterniond::FromTwoVectors(z_axis, Eigen::Vector3d::UnitZ());
+
+  geometry_msgs::msg::Pose pose;
+
+  pose.position.x = middle_point.x();
+  pose.position.y = middle_point.y();
+  pose.position.z = middle_point.z();
+
+  pose.orientation.w = orientation.w();
+  pose.orientation.x = orientation.x();
+  pose.orientation.y = orientation.y();
+  pose.orientation.z = orientation.z();
+
+  return pose;
 }
 
 void QrDetectionAndPoseEstimation::callbackProcessingCamera()
@@ -133,30 +187,41 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
       image_frame_right->getHeight(), image_frame_right->getWidth(), CV_8UC1, image_frame_right->getData().data()
     );
 
+    std::cout << "Es beginnt..." << std::endl;
     const auto qr_code_left = decode_qr_code(
       cv_frame_left, _parameter.qr_text_filter, *_qr_code_scanner
     );
     const auto qr_code_right = decode_qr_code(
       cv_frame_right, _parameter.qr_text_filter, *_qr_code_scanner
     );
-    std::cout << "Es beginnt..." << std::endl;
-    for (std::size_t i = 0; i < qr_code_left.point.size(); ++i) {
-      const auto spatial = _stereo_inference->estimateSpatial(
-        Eigen::Vector2i(qr_code_left.point[i].x, qr_code_left.point[i].y),
-        Eigen::Vector2i(qr_code_right.point[i].x, qr_code_right.point[i].y)
-      );
-      std::cout << "spatial:\n" << spatial << std::endl;
+    // const auto qr_code_left = decode_qr_code(
+    //   cv_frame_left, _parameter.qr_text_filter, *_qr_code_detector
+    // );
+    // const auto qr_code_right = decode_qr_code(
+    //   cv_frame_right, _parameter.qr_text_filter, *_qr_code_detector
+    // );
+    if (qr_code_left.text == "" || qr_code_right.text == "") {
+      return;
     }
 
+    geometry_msgs::msg::PoseStamped pose_msg;
 
-    draw_polygon_on_image(cv_frame_left, qr_code_left);
-    draw_polygon_on_image(cv_frame_right, qr_code_right);
-    cv::imshow("left", cv_frame_left);
-    cv::imshow("right", cv_frame_right);
+    pose_msg.header.frame_id = _parameter.frame_id;
+    pose_msg.header.stamp = get_clock()->now();
+    pose_msg.pose = estimate_pose_of_qr_code(
+      *_stereo_inference, qr_code_left, qr_code_right
+    );
+    _pub_pose->publish(pose_msg);
 
-    cv::waitKey(1);
+    if (_parameter.debugging_on == true) {
+      draw_polygon_on_image(cv_frame_left, qr_code_left);
+      draw_polygon_on_image(cv_frame_right, qr_code_right);
+      cv::imshow("left", cv_frame_left);
+      cv::imshow("right", cv_frame_right);
 
-
+      cv::waitKey(1);
+    }
+    std::cout << std::endl;
   }
   catch (const std::runtime_error& err) {
     RCLCPP_ERROR_STREAM(get_logger(), err.what());
