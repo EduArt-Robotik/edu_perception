@@ -246,12 +246,14 @@ void QrDetectionAndPoseEstimation::setupCameraPipeline(const Parameter parameter
   _camera[Camera::Left]->setBoardSocket(dai::CameraBoardSocket::LEFT);
   _camera[Camera::Left]->setResolution(dai::MonoCameraProperties::SensorResolution::THE_800_P);
   _camera[Camera::Left]->setFps(parameter.camera.fps);
+  _camera[Camera::Left]->initialControl.setAutoFocusMode(dai::CameraControl::AutoFocusMode::AUTO);
 
   // Define node 2: camera right.
   _camera[Camera::Right] = _camera_pipeline->create<dai::node::MonoCamera>();  
   _camera[Camera::Right]->setBoardSocket(dai::CameraBoardSocket::RIGHT);
   _camera[Camera::Right]->setResolution(dai::MonoCameraProperties::SensorResolution::THE_800_P);
   _camera[Camera::Right]->setFps(parameter.camera.fps);
+  _camera[Camera::Right]->initialControl.setAutoFocusMode(dai::CameraControl::AutoFocusMode::AUTO);
 
   // Define node 3: cropping left camera image.
   const std::size_t x_border = (_camera[Camera::Left]->getResolutionWidth() - parameter.camera.width) / 2;
