@@ -10,13 +10,18 @@ RUN \
 
 # Install Dependencies for Perception Package
 RUN apt-get update \
-    && sudo apt-get install -y \
-    ros-$ROS_DISTRO-geometry_msgs \
-    ros-$ROS_DISTRO-cv_bridge \
+    && apt-get install -y \
+    ros-$ROS_DISTRO-geometry-msgs \
+    ros-$ROS_DISTRO-cv-bridge \
     ros-$ROS_DISTRO-rmw-fastrtps-cpp \
     ros-$ROS_DISTRO-fastrtps \
     libeigen3-dev \
-    libzbar-dev
+    libzbar-dev \
+    python3-colcon-common-extensions \
+    python3-colcon-ros \
+    make \
+    cmake \
+    build-essential
 
 # set up iotbot workspace
 ENV EDU_WORKSPACE perception_ws

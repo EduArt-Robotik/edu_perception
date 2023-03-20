@@ -2,13 +2,13 @@ current_dir = $(shell pwd)
 
 download-sources:
 	git clone --branch main https://github.com/EduArt-Robotik/edu_perception.git
+	cd edu_perception; git submodule update --init --recursive
 
-build-docker: download-sources
-	docker build -t eduard-ipc127e-perception:0.1.0 .
+build-docker:
+	docker build -t eduard-perception-ipc127e:0.1.0 .
 
 all: download-sources build-docker
 	echo "build edu_robot and edu_robot_control into a docker image"
 
 clean:
-	rm -rf edu_robot
-	rm -rf edu_robot_control
+	rm -rf edu_perception
