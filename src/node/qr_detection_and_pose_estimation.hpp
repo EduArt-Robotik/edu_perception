@@ -50,7 +50,7 @@ public:
     } camera;
     std::string qr_text_filter = "Eduard";
     std::string frame_id = "qr_code_camera";
-    bool debugging_on = true;
+    bool debugging_on = false;
   };
 
   static Parameter get_parameter(rclcpp::Node& ros_node, const Parameter& default_parameter);

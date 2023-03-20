@@ -1,4 +1,4 @@
-/qr_detection_and_pose_estimation:
+/**:
   ros__parameters:
     use_sim_time: false
     camera:

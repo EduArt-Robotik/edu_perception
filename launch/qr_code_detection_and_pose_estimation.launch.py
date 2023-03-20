@@ -23,7 +23,10 @@ def generate_launch_description():
       package='edu_perception',
       executable='qr_detection_and_pose_estimation',
       name='qr_detection_and_pose_estimation',
-      parameters=[parameter_file],
+      parameters=[
+        parameter_file,
+        {'frame_id': 'object_sensor/front'}
+      ],
       remappings=[
         ('qr_code_pose', 'object/pose')
       ],

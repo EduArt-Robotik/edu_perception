@@ -35,12 +35,14 @@ QrDetectionAndPoseEstimation::Parameter QrDetectionAndPoseEstimation::get_parame
   ros_node.declare_parameter<int>("camera.width", default_parameter.camera.width);
   ros_node.declare_parameter<int>("camera.height", default_parameter.camera.height);
   ros_node.declare_parameter<std::string>("qr_text_filter", default_parameter.qr_text_filter);
+  ros_node.declare_parameter<std::string>("frame_id", default_parameter.frame_id);
   ros_node.declare_parameter<bool>("debugging_on", default_parameter.debugging_on);
 
   parameter.camera.fps = ros_node.get_parameter("camera.fps").as_double();
   parameter.camera.width = ros_node.get_parameter("camera.width").as_int();
   parameter.camera.height = ros_node.get_parameter("camera.height").as_int();
   parameter.qr_text_filter = ros_node.get_parameter("qr_text_filter").as_string();
+  parameter.frame_id = ros_node.get_parameter("frame_id").as_string();
   parameter.debugging_on = ros_node.get_parameter("debugging_on").as_bool();
 
   return parameter;
@@ -212,7 +214,7 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
 
     geometry_msgs::msg::PoseStamped pose_msg;
 
-    pose_msg.header.frame_id = _parameter.frame_id;
+    pose_msg.header.frame_id = get_effective_namespace() + _parameter.frame_id;
     pose_msg.header.stamp = get_clock()->now();
     pose_msg.pose = estimate_pose_of_qr_code(
       *_stereo_inference, qr_code_left, qr_code_right
