@@ -24,12 +24,12 @@ add_subdirectory(src/lib)
 add_subdirectory(src/node)
 
 ## Installing of Content
-# install(
-#   DIRECTORY
-#     launch
-#     parameter
-#   DESTINATION share/${PROJECT_NAME}
-# )
+install(
+  DIRECTORY
+    launch
+    parameter
+  DESTINATION share/${PROJECT_NAME}
+)
 install(
   TARGETS qr_detection_and_pose_estimation
   EXPORT export_${PROJECT_NAME}
