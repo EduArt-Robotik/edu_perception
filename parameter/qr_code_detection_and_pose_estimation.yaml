@@ -3,5 +3,7 @@
     use_sim_time: false
     camera:
       fps: 5.0
+      width: 1280      
+      height: 400
     debugging_on: false
     qr_text_filter: Eduard

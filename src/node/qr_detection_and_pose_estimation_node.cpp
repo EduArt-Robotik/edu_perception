@@ -32,10 +32,14 @@ QrDetectionAndPoseEstimation::Parameter QrDetectionAndPoseEstimation::get_parame
   Parameter parameter;
 
   ros_node.declare_parameter<float>("camera.fps", default_parameter.camera.fps);
+  ros_node.declare_parameter<int>("camera.width", default_parameter.camera.width);
+  ros_node.declare_parameter<int>("camera.height", default_parameter.camera.height);
   ros_node.declare_parameter<std::string>("qr_text_filter", default_parameter.qr_text_filter);
   ros_node.declare_parameter<bool>("debugging_on", default_parameter.debugging_on);
 
   parameter.camera.fps = ros_node.get_parameter("camera.fps").as_double();
+  parameter.camera.width = ros_node.get_parameter("camera.width").as_int();
+  parameter.camera.height = ros_node.get_parameter("camera.height").as_int();
   parameter.qr_text_filter = ros_node.get_parameter("qr_text_filter").as_string();
   parameter.debugging_on = ros_node.get_parameter("debugging_on").as_bool();
 
@@ -56,7 +60,8 @@ QrDetectionAndPoseEstimation::QrDetectionAndPoseEstimation()
     static_cast<std::size_t>(_camera[Camera::Left]->getResolutionHeight()) 
   };
   _stereo_inference = std::make_unique<StereoInference>(_camera_device, stereo_inference_parameter);
-  // _qr_code_scanner->set_config(zbar::ZBAR_QRCODE, zbar::ZBAR_CFG_ENABLE, 1);
+  _qr_code_scanner->set_config(zbar::ZBAR_NONE, zbar::ZBAR_CFG_ENABLE, 0);
+  _qr_code_scanner->set_config(zbar::ZBAR_QRCODE, zbar::ZBAR_CFG_ENABLE, 1);
 
   _pub_pose = create_publisher<geometry_msgs::msg::PoseStamped>("qr_code_pose", rclcpp::SensorDataQoS());
 
@@ -108,6 +113,7 @@ static QrCode decode_qr_code(const cv::Mat& image, const std::string& qr_text_fi
 
 static QrCode decode_qr_code(const cv::Mat& image, const std::string& qr_text_filter, cv::QRCodeDetector& detector)
 {
+  (void)qr_text_filter;
   QrCode qr_code;
   std::vector<cv::Point2i> points;
   qr_code.text = detector.detectAndDecode(image, points);
@@ -245,15 +251,33 @@ void QrDetectionAndPoseEstimation::setupCameraPipeline(const Parameter parameter
   _camera[Camera::Right]->setResolution(dai::MonoCameraProperties::SensorResolution::THE_800_P);
   _camera[Camera::Right]->setFps(parameter.camera.fps);
 
-  // Define node 3: output camera left.
+  // Define node 3: cropping left camera image.
+  const std::size_t x_border = (_camera[Camera::Left]->getResolutionWidth() - parameter.camera.width) / 2;
+  const std::size_t y_border = (_camera[Camera::Left]->getResolutionHeight() - parameter.camera.height) / 2;
+  const float x_min = x_border / static_cast<float>(_camera[Camera::Left]->getResolutionWidth());
+  const float y_min = y_border / static_cast<float>(_camera[Camera::Left]->getResolutionHeight());
+  const float x_max = (x_border + _camera[Camera::Left]->getResolutionWidth())
+    / static_cast<float>(_camera[Camera::Left]->getResolutionWidth());
+  const float y_max = (y_border + _camera[Camera::Left]->getResolutionHeight())
+    / static_cast<float>(_camera[Camera::Left]->getResolutionHeight());
+  _image_manip[Camera::Left] = _camera_pipeline->create<dai::node::ImageManip>();
+  _image_manip[Camera::Left]->initialConfig.setCropRect(x_min, y_min, x_max, y_max);
+  _camera[Camera::Left]->out.link(_image_manip[Camera::Left]->inputImage);
+
+  // Define node 4: cropping right camera image.
+  _image_manip[Camera::Right] = _camera_pipeline->create<dai::node::ImageManip>();
+  _image_manip[Camera::Right]->initialConfig.setCropRect(x_min, y_min, x_max, y_max);
+  _camera[Camera::Right]->out.link(_image_manip[Camera::Right]->inputImage);
+
+  // Define node 5: output camera left.
   _camera_output[Camera::Left] = _camera_pipeline->create<dai::node::XLinkOut>();
   _camera_output[Camera::Left]->setStreamName("camera_left");
-  _camera[Camera::Left]->out.link(_camera_output[Camera::Left]->input);
+  _image_manip[Camera::Left]->out.link(_camera_output[Camera::Left]->input);
 
-  // Define node 4: output camera right.
+  // Define node 6: output camera right.
   _camera_output[Camera::Right] = _camera_pipeline->create<dai::node::XLinkOut>();
   _camera_output[Camera::Right]->setStreamName("camera_right");
-  _camera[Camera::Right]->out.link(_camera_output[Camera::Right]->input);
+  _image_manip[Camera::Right]->out.link(_camera_output[Camera::Right]->input);
 
   // Initialize device and data queues.
   _camera_device = std::make_shared<dai::Device>(*_camera_pipeline);
