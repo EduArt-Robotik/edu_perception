@@ -21,7 +21,8 @@ RUN apt-get update \
     python3-colcon-ros \
     make \
     cmake \
-    build-essential
+    build-essential \
+    libusb-1.0-0-dev
 
 # set up iotbot workspace
 ENV EDU_WORKSPACE perception_ws
