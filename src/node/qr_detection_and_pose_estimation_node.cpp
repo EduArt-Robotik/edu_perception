@@ -52,7 +52,7 @@ QrDetectionAndPoseEstimation::Parameter QrDetectionAndPoseEstimation::get_parame
 QrDetectionAndPoseEstimation::QrDetectionAndPoseEstimation()
   : rclcpp::Node("qr_detection_and_pose_estimation")
   , _parameter(get_parameter(*this, Parameter()))
-  , _qr_code_scanner(std::make_shared<zbar::ImageScanner>())
+  , _qr_code_scanner{std::make_shared<zbar::ImageScanner>(), std::make_shared<zbar::ImageScanner>()}
   , _qr_code_detector(std::make_shared<cv::QRCodeDetector>())
 {
   setupCameraPipeline(_parameter);
@@ -63,8 +63,10 @@ QrDetectionAndPoseEstimation::QrDetectionAndPoseEstimation()
     static_cast<std::size_t>(_camera[Camera::Left]->getResolutionHeight()) 
   };
   _stereo_inference = std::make_unique<StereoInference>(_camera_device, stereo_inference_parameter);
-  _qr_code_scanner->set_config(zbar::ZBAR_NONE, zbar::ZBAR_CFG_ENABLE, 0);
-  _qr_code_scanner->set_config(zbar::ZBAR_QRCODE, zbar::ZBAR_CFG_ENABLE, 1);
+  _qr_code_scanner[Camera::Left]->set_config(zbar::ZBAR_NONE, zbar::ZBAR_CFG_ENABLE, 0);
+  _qr_code_scanner[Camera::Left]->set_config(zbar::ZBAR_QRCODE, zbar::ZBAR_CFG_ENABLE, 1);
+  _qr_code_scanner[Camera::Right]->set_config(zbar::ZBAR_NONE, zbar::ZBAR_CFG_ENABLE, 0);
+  _qr_code_scanner[Camera::Right]->set_config(zbar::ZBAR_QRCODE, zbar::ZBAR_CFG_ENABLE, 1);
 
   _pub_pose = create_publisher<geometry_msgs::msg::PoseStamped>("qr_code_pose", rclcpp::SensorDataQoS());
   _pub_debug_image = create_publisher<sensor_msgs::msg::Image>("debug_image", rclcpp::QoS(2).reliable());
@@ -94,7 +96,7 @@ static QrCode decode_qr_code(const cv::Mat& image, const std::string& qr_text_fi
   scanner.scan(zbar_image);
 
   if (zbar_image.symbol_begin() == zbar_image.symbol_end()) {
-    throw std::runtime_error("No QR code detected in image.");
+    return {};
   }
 
   QrCode qr_code;
@@ -112,7 +114,7 @@ static QrCode decode_qr_code(const cv::Mat& image, const std::string& qr_text_fi
     }
   }
 
-  throw std::runtime_error("No expected QR code found.");
+  return qr_code;
 }
 
 // static QrCode decode_qr_code(const cv::Mat& image, const std::string& qr_text_filter, cv::QRCodeDetector& detector)
@@ -193,10 +195,10 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
       image_frame_right->getHeight(), image_frame_right->getWidth(), CV_8UC1, image_frame_right->getData().data()
     );
     const auto qr_code_left = decode_qr_code(
-      cv_frame_left, _parameter.qr_text_filter, *_qr_code_scanner
+      cv_frame_left, _parameter.qr_text_filter, *_qr_code_scanner[Camera::Left]
     );
     const auto qr_code_right = decode_qr_code(
-      cv_frame_right, _parameter.qr_text_filter, *_qr_code_scanner
+      cv_frame_right, _parameter.qr_text_filter, *_qr_code_scanner[Camera::Right]
     );
     // const auto qr_code_left = decode_qr_code(
     //   cv_frame_left, _parameter.qr_text_filter, *_qr_code_detector
@@ -261,6 +263,8 @@ void QrDetectionAndPoseEstimation::setupCameraPipeline(const Parameter parameter
   _camera[Camera::Left]->setResolution(dai::MonoCameraProperties::SensorResolution::THE_800_P);
   _camera[Camera::Left]->setFps(parameter.camera.fps);
   _camera[Camera::Left]->initialControl.setAutoFocusMode(dai::CameraControl::AutoFocusMode::AUTO);
+  _camera[Camera::Left]->initialControl.setAutoExposureEnable();
+  _camera[Camera::Left]->initialControl.setSceneMode(dai::CameraControl::SceneMode::BARCODE);
 
   // Define node 2: camera right.
   _camera[Camera::Right] = _camera_pipeline->create<dai::node::MonoCamera>();  
@@ -268,6 +272,8 @@ void QrDetectionAndPoseEstimation::setupCameraPipeline(const Parameter parameter
   _camera[Camera::Right]->setResolution(dai::MonoCameraProperties::SensorResolution::THE_800_P);
   _camera[Camera::Right]->setFps(parameter.camera.fps);
   _camera[Camera::Right]->initialControl.setAutoFocusMode(dai::CameraControl::AutoFocusMode::AUTO);
+  _camera[Camera::Right]->initialControl.setAutoExposureEnable();
+  _camera[Camera::Right]->initialControl.setSceneMode(dai::CameraControl::SceneMode::BARCODE);
 
   // Define node 3: cropping left camera image.
   const std::size_t x_border = (_camera[Camera::Left]->getResolutionWidth() - parameter.camera.width) / 2;

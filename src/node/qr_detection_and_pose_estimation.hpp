@@ -84,7 +84,7 @@ private:
   std::array<std::shared_ptr<dai::node::XLinkOut>, Camera::Count> _camera_output;
   std::array<std::shared_ptr<dai::DataOutputQueue>, Camera::Count> _output_queue;
 
-  std::shared_ptr<zbar::ImageScanner> _qr_code_scanner;
+  std::array<std::shared_ptr<zbar::ImageScanner>, Camera::Count> _qr_code_scanner;
   std::shared_ptr<cv::QRCodeDetector> _qr_code_detector;
 
   std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>> _pub_pose;
