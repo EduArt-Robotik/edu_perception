@@ -17,5 +17,6 @@ target_link_libraries(qr_detection_and_pose_estimation
 ament_target_dependencies(qr_detection_and_pose_estimation
   "rclcpp"
   "geometry_msgs"
+  "sensor_msgs"
   "cv_bridge"
 )

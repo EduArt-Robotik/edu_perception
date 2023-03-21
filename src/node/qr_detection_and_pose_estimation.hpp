@@ -11,6 +11,7 @@
 #include <rclcpp/publisher.hpp>
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <sensor_msgs/msg/image.hpp>
 
 #include <memory>
 #include <array>
@@ -86,6 +87,7 @@ private:
   std::shared_ptr<cv::QRCodeDetector> _qr_code_detector;
 
   std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>> _pub_pose;
+  std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> _pub_debug_image;
   std::shared_ptr<rclcpp::TimerBase> _timer_processing_camera;
 };
 
