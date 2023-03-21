@@ -217,7 +217,7 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
       cv::hconcat(cv_frame_left, cv_frame_right, debug_output);
       
       std_msgs::msg::Header header;
-      header.frame_id = get_effective_namespace() + _parameter.frame_id;
+      header.frame_id = getFrameIdPrefix() + _parameter.frame_id;
       header.stamp = get_clock()->now();
 
       _pub_debug_image->publish(*cv_bridge::CvImage(header, "mono8", debug_output).toImageMsg());
@@ -229,7 +229,7 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
 
     geometry_msgs::msg::PoseStamped pose_msg;
 
-    pose_msg.header.frame_id = get_effective_namespace() + _parameter.frame_id;
+    pose_msg.header.frame_id = getFrameIdPrefix() + _parameter.frame_id;
     pose_msg.header.stamp = get_clock()->now();
     pose_msg.pose = estimate_pose_of_qr_code(
       *_stereo_inference, qr_code_left, qr_code_right
@@ -301,6 +301,13 @@ void QrDetectionAndPoseEstimation::setupCameraPipeline(const Parameter parameter
   _camera_device = std::make_shared<dai::Device>(*_camera_pipeline);
   _output_queue[Camera::Left] = _camera_device->getOutputQueue("camera_left", 2, true);
   _output_queue[Camera::Right] = _camera_device->getOutputQueue("camera_right", 2, true);
+}
+
+std::string QrDetectionAndPoseEstimation::getFrameIdPrefix() const
+{
+  // remove slash at the beginning
+  const std::string frame_id_prefix(get_effective_namespace().begin() + 1, get_effective_namespace().end());
+  return frame_id_prefix;
 }
 
 } // end namespace perception

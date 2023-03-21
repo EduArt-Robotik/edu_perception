@@ -62,6 +62,7 @@ public:
 private:
   void callbackProcessingCamera();
   void setupCameraPipeline(const Parameter parameter);
+  std::string getFrameIdPrefix() const;
 
   struct Camera {
     enum {
