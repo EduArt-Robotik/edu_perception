@@ -306,7 +306,11 @@ void QrDetectionAndPoseEstimation::setupCameraPipeline(const Parameter parameter
 std::string QrDetectionAndPoseEstimation::getFrameIdPrefix() const
 {
   // remove slash at the beginning
-  const std::string frame_id_prefix(get_effective_namespace().begin() + 1, get_effective_namespace().end());
+  std::string frame_id_prefix(get_effective_namespace().begin() + 1, get_effective_namespace().end());
+  // add slash at the end if it is missing
+  if (frame_id_prefix.back() != '/') {
+    frame_id_prefix.push_back('/');
+  }
   return frame_id_prefix;
 }
 
