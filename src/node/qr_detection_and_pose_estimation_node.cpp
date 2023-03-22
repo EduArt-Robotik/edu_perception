@@ -180,9 +180,16 @@ static geometry_msgs::msg::Pose estimate_pose_of_qr_code(
 
 void QrDetectionAndPoseEstimation::callbackProcessingCamera()
 {
+  RCLCPP_INFO(get_logger(), __PRETTY_FUNCTION__);
   try {
+    auto stamp_start = get_clock()->now();
     const auto image_frame_left = _output_queue[Camera::Left]->get<dai::ImgFrame>();
+    auto stamp_stop = get_clock()->now();
+    RCLCPP_INFO(get_logger(), "get image frame left: %ld us", (stamp_stop - stamp_start).nanoseconds() / 1000);
+    stamp_start = stamp_stop;
     const auto image_frame_right = _output_queue[Camera::Right]->get<dai::ImgFrame>();
+    stamp_stop = get_clock()->now();
+    RCLCPP_INFO(get_logger(), "get image frame right: %ld us", (stamp_stop - stamp_start).nanoseconds() / 1000);
 
     if (image_frame_left == nullptr || image_frame_right == nullptr) {
       return;
@@ -194,12 +201,18 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
     cv::Mat cv_frame_right(
       image_frame_right->getHeight(), image_frame_right->getWidth(), CV_8UC1, image_frame_right->getData().data()
     );
+    stamp_start = get_clock()->now();
     const auto qr_code_left = decode_qr_code(
       cv_frame_left, _parameter.qr_text_filter, *_qr_code_scanner[Camera::Left]
     );
+    stamp_stop = get_clock()->now();
+    RCLCPP_INFO(get_logger(), "decode left image: %ld us", (stamp_stop - stamp_start).nanoseconds() / 1000);    
+    stamp_start = stamp_stop;
     const auto qr_code_right = decode_qr_code(
       cv_frame_right, _parameter.qr_text_filter, *_qr_code_scanner[Camera::Right]
     );
+    stamp_stop = get_clock()->now();
+    RCLCPP_INFO(get_logger(), "decode right image: %ld us", (stamp_stop - stamp_start).nanoseconds() / 1000);    
     // const auto qr_code_left = decode_qr_code(
     //   cv_frame_left, _parameter.qr_text_filter, *_qr_code_detector
     // );
@@ -229,6 +242,7 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
       return;
     }
 
+    stamp_start = get_clock()->now();    
     geometry_msgs::msg::PoseStamped pose_msg;
 
     pose_msg.header.frame_id = getFrameIdPrefix() + _parameter.frame_id;
@@ -237,6 +251,8 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
       *_stereo_inference, qr_code_left, qr_code_right
     );
     _pub_pose->publish(pose_msg);
+    stamp_stop = get_clock()->now();
+    RCLCPP_INFO(get_logger(), "estimate pose and publishing it: %ld us\n\n", (stamp_stop - stamp_start).nanoseconds() / 1000);
 
     if (_parameter.debugging_on == true) {
       draw_polygon_on_image(cv_frame_left, qr_code_left);
