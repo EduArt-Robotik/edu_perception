@@ -231,7 +231,7 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
 
     const auto timeout = round<milliseconds>(duration<float>{1.0f / _parameter.camera.fps});
     do {
-      std::this_thread::sleep_for(timeout / 10);
+      std::this_thread::sleep_for(timeout / 20);
 
       if (future_left.wait_for(0ms) == std::future_status::ready
           && future_right.wait_for(0ms) == std::future_status::ready) {
