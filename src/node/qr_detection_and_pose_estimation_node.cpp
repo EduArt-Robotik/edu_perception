@@ -17,14 +17,15 @@
 #include <chrono>
 #include <memory>
 #include <cstddef>
+#include <future>
 
 namespace eduart {
 namespace perception {
 
-// using std::chrono::duration;
+using std::chrono::duration;
 using std::chrono::seconds;
 using std::chrono::milliseconds;
-// using std::chrono::round;
+using std::chrono::round;
 using namespace std::chrono_literals;
 
 QrDetectionAndPoseEstimation::Parameter QrDetectionAndPoseEstimation::get_parameter(
@@ -202,17 +203,50 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
       image_frame_right->getHeight(), image_frame_right->getWidth(), CV_8UC1, image_frame_right->getData().data()
     );
     stamp_start = get_clock()->now();
-    const auto qr_code_left = decode_qr_code(
-      cv_frame_left, _parameter.qr_text_filter, *_qr_code_scanner[Camera::Left]
+    // const auto qr_code_left = decode_qr_code(
+    //   cv_frame_left, _parameter.qr_text_filter, *_qr_code_scanner[Camera::Left]
+    // );
+    // stamp_stop = get_clock()->now();
+    // RCLCPP_INFO(get_logger(), "decode left image: %ld us", (stamp_stop - stamp_start).nanoseconds() / 1000);    
+    // stamp_start = stamp_stop;
+    // const auto qr_code_right = decode_qr_code(
+    //   cv_frame_right, _parameter.qr_text_filter, *_qr_code_scanner[Camera::Right]
+    // );
+
+    // Try with async function call to reduce execution time.
+    auto future_left = std::async(
+      std::launch::async, [&](){
+        return decode_qr_code(
+          cv_frame_left, _parameter.qr_text_filter, *_qr_code_scanner[Camera::Left]
+        );
+      }
     );
-    stamp_stop = get_clock()->now();
-    RCLCPP_INFO(get_logger(), "decode left image: %ld us", (stamp_stop - stamp_start).nanoseconds() / 1000);    
-    stamp_start = stamp_stop;
-    const auto qr_code_right = decode_qr_code(
-      cv_frame_right, _parameter.qr_text_filter, *_qr_code_scanner[Camera::Right]
+    auto future_right = std::async(
+      std::launch::async, [&](){
+        return decode_qr_code(
+          cv_frame_right, _parameter.qr_text_filter, *_qr_code_scanner[Camera::Right]
+        );
+      }
     );
+
+    const auto timeout = round<milliseconds>(duration<float>{1.0f / _parameter.camera.fps});
+    do {
+      std::this_thread::sleep_for(timeout / 10);
+
+      if (future_left.wait_for(0ms) == std::future_status::ready
+          && future_right.wait_for(0ms) == std::future_status::ready) {
+        break;
+      }
+      if ((get_clock()->now() - stamp_start) >= timeout) {
+        throw std::runtime_error("No QR code detected in time.");
+      }
+    } while (true);
+
+    const auto qr_code_left = future_left.get();
+    const auto qr_code_right = future_right.get();
+
     stamp_stop = get_clock()->now();
-    RCLCPP_INFO(get_logger(), "decode right image: %ld us", (stamp_stop - stamp_start).nanoseconds() / 1000);    
+    RCLCPP_INFO(get_logger(), "decode images: %ld us", (stamp_stop - stamp_start).nanoseconds() / 1000);    
     // const auto qr_code_left = decode_qr_code(
     //   cv_frame_left, _parameter.qr_text_filter, *_qr_code_detector
     // );
