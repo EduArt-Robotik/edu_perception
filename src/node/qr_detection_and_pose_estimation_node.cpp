@@ -9,7 +9,6 @@
 #include <rclcpp/rclcpp.hpp>
 #include <cv_bridge/cv_bridge.h>
 
-#include <opencv2/opencv.hpp>
 #include <depthai/depthai.hpp>
 #include <stdexcept>
 #include <zbar.h>
@@ -58,16 +57,24 @@ QrDetectionAndPoseEstimation::QrDetectionAndPoseEstimation()
 {
   setupCameraPipeline(_parameter);
   const StereoInference::Parameter stereo_inference_parameter{
-    static_cast<std::size_t>(_camera[Camera::Left]->getResolutionWidth()),
-    static_cast<std::size_t>(_camera[Camera::Left]->getResolutionHeight()),
+    // static_cast<std::size_t>(_camera[Camera::Left]->getResolutionWidth()),
+    // static_cast<std::size_t>(_camera[Camera::Left]->getResolutionHeight()),
+    _parameter.camera.width,
+    _parameter.camera.height,
     static_cast<std::size_t>(_camera[Camera::Left]->getResolutionWidth()),
     static_cast<std::size_t>(_camera[Camera::Left]->getResolutionHeight()) 
   };
   _stereo_inference = std::make_unique<StereoInference>(_camera_device, stereo_inference_parameter);
+
   _qr_code_scanner[Camera::Left]->set_config(zbar::ZBAR_NONE, zbar::ZBAR_CFG_ENABLE, 0);
   _qr_code_scanner[Camera::Left]->set_config(zbar::ZBAR_QRCODE, zbar::ZBAR_CFG_ENABLE, 1);
+  // _qr_code_scanner[Camera::Left]->enable_cache();
   _qr_code_scanner[Camera::Right]->set_config(zbar::ZBAR_NONE, zbar::ZBAR_CFG_ENABLE, 0);
   _qr_code_scanner[Camera::Right]->set_config(zbar::ZBAR_QRCODE, zbar::ZBAR_CFG_ENABLE, 1);
+  // _qr_code_scanner[Camera::Right]->enable_cache();
+
+  _camera_roi[Camera::Left] = cv::Rect(0, 0, _parameter.camera.width, _parameter.camera.height);
+  _camera_roi[Camera::Right] = cv::Rect(0, 0, _parameter.camera.width, _parameter.camera.height);
 
   _pub_pose = create_publisher<geometry_msgs::msg::PoseStamped>("qr_code_pose", rclcpp::SensorDataQoS());
   _pub_debug_image = create_publisher<sensor_msgs::msg::Image>("debug_image", rclcpp::QoS(2).reliable());
@@ -89,14 +96,35 @@ struct QrCode {
   std::array<cv::Point2i, 4> point;
 };
 
-static QrCode decode_qr_code(const cv::Mat& image, const std::string& qr_text_filter, zbar::ImageScanner& scanner)
+static cv::Rect estimateFutureRoi(const QrCode& qr_code, const cv::Size image_size, const float size_increase_factor)
+{
+  const cv::Rect future_roi = cv::boundingRect(qr_code.point);
+  std::cout << "Found ROI: " << future_roi << std::endl;
+  const cv::Point top_left_corner(
+    std::max(future_roi.x - static_cast<int>(future_roi.width  * (size_increase_factor - 1.0f)), 0),
+    std::max(future_roi.y - static_cast<int>(future_roi.height * (size_increase_factor - 1.0f)), 0)
+  );
+  const cv::Point bottom_right_corner(
+    std::min(future_roi.br().x + static_cast<int>(future_roi.width  * (size_increase_factor - 1.0f)), image_size.width  - 1),
+    std::min(future_roi.br().y + static_cast<int>(future_roi.height * (size_increase_factor - 1.0f)), image_size.height - 1)
+  );
+  const cv::Rect future_roi_increased(top_left_corner, bottom_right_corner);
+  std::cout << "Increased ROI: " << future_roi_increased << std::endl;
+  return future_roi_increased;
+}
+
+static QrCode decode_qr_code(
+  const cv::Mat& image, const std::string& qr_text_filter, zbar::ImageScanner& scanner, cv::Rect& camera_roi)
 {
   zbar::Image zbar_image(
     image.cols, image.rows, "Y800", image.data, image.cols * image.rows
   );
+  std::cout << "Setting crop: " << camera_roi << std::endl;
+  zbar_image.set_crop(camera_roi.x, camera_roi.y, camera_roi.width, camera_roi.height);
   scanner.scan(zbar_image);
 
   if (zbar_image.symbol_begin() == zbar_image.symbol_end()) {
+    camera_roi = cv::Rect(0, 0, image.size().width, image.size().height);    
     return {};
   }
 
@@ -111,10 +139,12 @@ static QrCode decode_qr_code(const cv::Mat& image, const std::string& qr_text_fi
         qr_code.point[i].y = symbol->get_location_y(i);
       }
 
+      camera_roi = estimateFutureRoi(qr_code, image.size(), 1.2f);
       return qr_code;
     }
   }
 
+  camera_roi = cv::Rect(0, 0, image.size().width, image.size().height);
   return qr_code;
 }
 
@@ -186,11 +216,12 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
     auto stamp_start = get_clock()->now();
     const auto image_frame_left = _output_queue[Camera::Left]->get<dai::ImgFrame>();
     auto stamp_stop = get_clock()->now();
-    RCLCPP_INFO(get_logger(), "get image frame left: %ld us", (stamp_stop - stamp_start).nanoseconds() / 1000);
+    RCLCPP_INFO(get_logger(), "got image frame left: %ld us", (stamp_stop - stamp_start).nanoseconds() / 1000);
+
     stamp_start = stamp_stop;
     const auto image_frame_right = _output_queue[Camera::Right]->get<dai::ImgFrame>();
     stamp_stop = get_clock()->now();
-    RCLCPP_INFO(get_logger(), "get image frame right: %ld us", (stamp_stop - stamp_start).nanoseconds() / 1000);
+    RCLCPP_INFO(get_logger(), "got image frame right: %ld us", (stamp_stop - stamp_start).nanoseconds() / 1000);
 
     if (image_frame_left == nullptr || image_frame_right == nullptr) {
       return;
@@ -202,6 +233,7 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
     cv::Mat cv_frame_right(
       image_frame_right->getHeight(), image_frame_right->getWidth(), CV_8UC1, image_frame_right->getData().data()
     );
+    std::cout << "Image size left: " << cv_frame_left.size() << std::endl;
     stamp_start = get_clock()->now();
     // const auto qr_code_left = decode_qr_code(
     //   cv_frame_left, _parameter.qr_text_filter, *_qr_code_scanner[Camera::Left]
@@ -217,30 +249,17 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
     auto future_left = std::async(
       std::launch::async, [&](){
         return decode_qr_code(
-          cv_frame_left, _parameter.qr_text_filter, *_qr_code_scanner[Camera::Left]
+          cv_frame_left, _parameter.qr_text_filter, *_qr_code_scanner[Camera::Left], _camera_roi[Camera::Left]
         );
       }
     );
     auto future_right = std::async(
       std::launch::async, [&](){
         return decode_qr_code(
-          cv_frame_right, _parameter.qr_text_filter, *_qr_code_scanner[Camera::Right]
+          cv_frame_right, _parameter.qr_text_filter, *_qr_code_scanner[Camera::Right], _camera_roi[Camera::Right]
         );
       }
     );
-
-    const auto timeout = round<milliseconds>(duration<float>{1.0f / _parameter.camera.fps});
-    do {
-      std::this_thread::sleep_for(timeout / 20);
-
-      if (future_left.wait_for(0ms) == std::future_status::ready
-          && future_right.wait_for(0ms) == std::future_status::ready) {
-        break;
-      }
-      if ((get_clock()->now() - stamp_start) >= timeout) {
-        throw std::runtime_error("No QR code detected in time.");
-      }
-    } while (true);
 
     const auto qr_code_left = future_left.get();
     const auto qr_code_right = future_right.get();
@@ -261,7 +280,8 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
       if (qr_code_right.text != "") {
         draw_polygon_on_image(cv_frame_right, qr_code_right);
       }
-
+      cv::rectangle(cv_frame_left, _camera_roi[Camera::Left], cv::Scalar(255), 3);
+      cv::rectangle(cv_frame_right, _camera_roi[Camera::Right], cv::Scalar(255), 3);
       cv::Mat debug_output;
       cv::hconcat(cv_frame_left, cv_frame_right, debug_output);
       
@@ -330,9 +350,9 @@ void QrDetectionAndPoseEstimation::setupCameraPipeline(const Parameter parameter
   const std::size_t y_border = (_camera[Camera::Left]->getResolutionHeight() - parameter.camera.height) / 2;
   const float x_min = x_border / static_cast<float>(_camera[Camera::Left]->getResolutionWidth());
   const float y_min = y_border / static_cast<float>(_camera[Camera::Left]->getResolutionHeight());
-  const float x_max = (x_border + _camera[Camera::Left]->getResolutionWidth())
+  const float x_max = (_camera[Camera::Left]->getResolutionWidth() - x_border)
     / static_cast<float>(_camera[Camera::Left]->getResolutionWidth());
-  const float y_max = (y_border + _camera[Camera::Left]->getResolutionHeight())
+  const float y_max = (_camera[Camera::Left]->getResolutionHeight() - y_border)
     / static_cast<float>(_camera[Camera::Left]->getResolutionHeight());
   _image_manip[Camera::Left] = _camera_pipeline->create<dai::node::ImageManip>();
   _image_manip[Camera::Left]->initialConfig.setCropRect(x_min, y_min, x_max, y_max);
