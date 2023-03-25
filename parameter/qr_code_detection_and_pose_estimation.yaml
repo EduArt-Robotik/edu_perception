@@ -11,5 +11,5 @@
     qr_code_detector:
       qr_code_text_filter: Eduard
       roi_increase_rate:
-        horizontal: 0.2
-        vertical: 0.4
+        horizontal: 0.4
+        vertical: 0.2
