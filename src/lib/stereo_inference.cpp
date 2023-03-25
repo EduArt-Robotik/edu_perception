@@ -1,4 +1,4 @@
-#include "edu_perception/stereo_inference.hpp"
+#include "edu_perception/stereo/stereo_inference.hpp"
 #include "edu_perception/angle.hpp"
 
 #include <Eigen/src/Core/Matrix.h>
@@ -8,6 +8,7 @@
 
 namespace eduart {
 namespace perception {
+namespace stereo {
 
 StereoInference::StereoInference(std::shared_ptr<dai::Device> device, const Parameter parameter)
   : _parameter(parameter)
@@ -67,5 +68,6 @@ Eigen::Vector3f StereoInference::calculateSpatial(const Eigen::Vector2i coord, c
   return spatial * 0.01; // convert in meter
 }
 
+} // end namespace stereo
 } // end namespace perception
 } // end namespace eduart

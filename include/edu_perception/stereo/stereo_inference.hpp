@@ -5,7 +5,7 @@
  */
 #pragma once
 
-#include "angle.hpp"
+#include "edu_perception/angle.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -19,6 +19,7 @@ class Device;
 
 namespace eduart {
 namespace perception {
+namespace stereo {
 
 class StereoInference
 {
@@ -50,5 +51,6 @@ private:
   float _resize_factor;
 }; 
 
+} // end namespace stereo
 } // end namespace perception
 } // end namespace eduart

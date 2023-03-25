@@ -5,15 +5,14 @@
  */
 #pragma once
 
-#include <edu_perception/stereo_inference.hpp>
+#include <edu_perception/detector/qr_code_detector.hpp>
+#include <edu_perception/stereo/stereo_inference.hpp>
 
 #include <rclcpp/node.hpp>
 #include <rclcpp/publisher.hpp>
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <sensor_msgs/msg/image.hpp>
-
-#include <opencv2/opencv.hpp>
 
 #include <memory>
 #include <array>
@@ -31,14 +30,6 @@ class ImageManip;
 } // end namespace node
 } // end namespace dai
 
-namespace zbar {
-class ImageScanner;
-} // end namespace zbar
-
-namespace cv {
-class QRCodeDetector;
-}
-
 namespace eduart {
 namespace perception {
 
@@ -51,9 +42,10 @@ public:
       std::size_t width = 1280;
       std::size_t height = 800;
     } camera;
-    std::string qr_text_filter = "Eduard";
+    detector::QrCodeDetector::Parameter qr_code_detector = {
+      { 0.2f, 0.4f }, "Eduard"
+    };
     std::string frame_id = "qr_code_camera";
-    bool debugging_on = false;
   };
 
   static Parameter get_parameter(rclcpp::Node& ros_node, const Parameter& default_parameter);
@@ -77,7 +69,6 @@ private:
   Parameter _parameter;
   std::shared_ptr<dai::Pipeline> _camera_pipeline;
   std::shared_ptr<dai::Device> _camera_device;
-  std::unique_ptr<StereoInference> _stereo_inference;
 
   // \todo check if it is necessary to keep depthai objects alive, because it seems the pipeline keeps also
   //       a copy of the shared pointer.
@@ -86,9 +77,8 @@ private:
   std::array<std::shared_ptr<dai::node::XLinkOut>, Camera::Count> _camera_output;
   std::array<std::shared_ptr<dai::DataOutputQueue>, Camera::Count> _output_queue;
 
-  std::array<std::shared_ptr<zbar::ImageScanner>, Camera::Count> _qr_code_scanner;
-  std::shared_ptr<cv::QRCodeDetector> _qr_code_detector;
-  std::array<cv::Rect, Camera::Count> _camera_roi;
+  std::array<std::shared_ptr<detector::QrCodeDetector>, Camera::Count> _qr_code_detector;
+  std::unique_ptr<stereo::StereoInference> _stereo_inference;
 
   std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>> _pub_pose;
   std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> _pub_debug_image;

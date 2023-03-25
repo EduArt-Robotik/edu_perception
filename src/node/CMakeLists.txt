@@ -10,8 +10,6 @@ target_include_directories(qr_detection_and_pose_estimation PUBLIC
 target_link_libraries(qr_detection_and_pose_estimation
   depthai::core
   ${OpenCV_LIBS}
-  zbar
-  Eigen3::Eigen
   edu_perception
 )
 ament_target_dependencies(qr_detection_and_pose_estimation

@@ -1,9 +1,15 @@
 /**:
   ros__parameters:
     use_sim_time: false
+    frame_id: object_sensor/front
+
     camera:
-      fps: 5.0
-      width: 1280      
+      fps: 10.0
       height: 400
-    debugging_on: false
-    qr_text_filter: Eduard
+      width: 1280
+
+    qr_code_detector:
+      qr_code_text_filter: Eduard
+      roi_increase_rate:
+        horizontal: 0.2
+        vertical: 0.4
