@@ -25,7 +25,7 @@ StereoInference::StereoInference(std::shared_ptr<dai::Device> device, const Para
   _resize_factor = static_cast<double>(_parameter.origin_height) / static_cast<double>(_parameter.height);
 }
 
-Eigen::Vector3d StereoInference::estimateSpatial(const Eigen::Vector2i coord_a, const Eigen::Vector2i coord_b) const
+Eigen::Vector3f StereoInference::estimateSpatial(const Eigen::Vector2i coord_a, const Eigen::Vector2i coord_b) const
 {
   const std::size_t disparity = calculateDistance(coord_a, coord_b);
   const float depth = calculateDepth(disparity);
@@ -55,14 +55,14 @@ Angle StereoInference::calculateAngle(const int offset) const
   );
 }
 
-Eigen::Vector3d StereoInference::calculateSpatial(const Eigen::Vector2i coord, const float depth) const
+Eigen::Vector3f StereoInference::calculateSpatial(const Eigen::Vector2i coord, const float depth) const
 {
   const Eigen::Vector2i middle_position(_parameter.width / 2, _parameter.height / 2);
   const Eigen::Vector2i bb_position = coord - middle_position;
   const Angle angle_x = calculateAngle(bb_position.x());
   const Angle angle_y = calculateAngle(bb_position.y());
 
-  const Eigen::Vector3d spatial(depth, depth * std::tan(angle_x), -depth * std::tan(angle_y));
+  const Eigen::Vector3f spatial(depth, depth * std::tan(angle_x), -depth * std::tan(angle_y));
 
   return spatial * 0.01; // convert in meter
 }

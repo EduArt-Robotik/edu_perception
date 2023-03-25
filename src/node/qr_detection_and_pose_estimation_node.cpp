@@ -113,6 +113,55 @@ static cv::Rect estimateFutureRoi(const QrCode& qr_code, const cv::Size image_si
   return future_roi_increased;
 }
 
+static void sort_qr_code_points(decltype(QrCode::point)& qr_code_points)
+{
+  // Expecting the points represent a rectangle and the rectangle's orientation is less than 45°.
+  // Then the center point (c) can be used to locate each point's ... :
+  //
+  // p_0  |  p_1
+  //      |
+  // ----(c)---- // in image coordinates: --> x
+  //      |                               |       
+  // P_2  |  p_3                        y v
+  //
+  const cv::Point2i center_point = (qr_code_points[0] + qr_code_points[1] + qr_code_points[2] + qr_code_points[3]) / 4;
+  decltype(QrCode::point) sorted_points;
+  std::uint8_t flags_sorted_points = 0x0f;
+
+  for (const auto& point : qr_code_points) {
+    // p_0
+    if (point.x < center_point.x && point.y < center_point.y) {
+      sorted_points[0] = point;
+      flags_sorted_points &= ~(1 << 0);
+    }
+    // p_1
+    else if (point.x > center_point.x && point.y < center_point.y) {
+      sorted_points[1] = point;
+      flags_sorted_points &= ~(1 << 1);
+    }
+    // p_2
+    else if (point.x < center_point.x && point.y > center_point.y) {
+      sorted_points[2] = point;
+      flags_sorted_points &= ~(1 << 2);
+    }
+    // p_3
+    else if (point.x > center_point.x && point.y > center_point.y) {
+      sorted_points[3] = point;
+      flags_sorted_points &= ~(1 << 3);
+    }
+    else {
+      throw std::runtime_error("Can't locate point's quant. Expectations not fulfilled. Cancel sorting qr code points.");
+    }
+  }
+
+  if (flags_sorted_points != 0) {
+    throw std::runtime_error("Sorting of qr code points went wrong. Maybe expectations wasn't fulfilled");
+  }
+
+  // Sorting was successful.
+  qr_code_points = sorted_points;
+}
+
 static QrCode decode_qr_code(
   const cv::Mat& image, const std::string& qr_text_filter, zbar::ImageScanner& scanner, cv::Rect& camera_roi)
 {
@@ -140,6 +189,7 @@ static QrCode decode_qr_code(
       }
 
       camera_roi = estimateFutureRoi(qr_code, image.size(), 1.2f);
+      sort_qr_code_points(qr_code.point);
       return qr_code;
     }
   }
@@ -172,27 +222,64 @@ static void draw_polygon_on_image(cv::Mat& image, const QrCode& qr_code)
 static geometry_msgs::msg::Pose estimate_pose_of_qr_code(
   const StereoInference& inference, const QrCode& left_qr_code, const QrCode& right_qr_code)
 {
+  std::cout << "qr code left points:\n";
+  for (const auto& point : left_qr_code.point) {
+    std::cout << "point: " << point << std::endl;
+  }
+  std::cout << "qr code right points:\n";
+  for (const auto& point : right_qr_code.point) {
+    std::cout << "point: " << point << std::endl;
+  }  
   // Matching points are: point[0] --> point[1] == x axis
-  //                      point[0] --> point[3] == y axis
-  const Eigen::Vector3d origin = inference.estimateSpatial(
+  //                      point[0] --> point[2] == y axis
+  const Eigen::Vector3f origin = inference.estimateSpatial(
     Eigen::Vector2i(left_qr_code.point[0].x, left_qr_code.point[0].y),
     Eigen::Vector2i(right_qr_code.point[0].x, right_qr_code.point[0].y)
+  ).cwiseProduct(
+    Eigen::Vector3f(1.0f, -1.0f, 1.0f)
   );
-  const Eigen::Vector3d end_point_x_axis = inference.estimateSpatial(
+  const Eigen::Vector3f end_point_x_axis = inference.estimateSpatial(
     Eigen::Vector2i(left_qr_code.point[1].x, left_qr_code.point[1].y),
     Eigen::Vector2i(right_qr_code.point[1].x, right_qr_code.point[1].y)
+  ).cwiseProduct(
+    Eigen::Vector3f(1.0f, -1.0f, 1.0f)
   );
-  const Eigen::Vector3d end_point_y_axis = inference.estimateSpatial(
-    Eigen::Vector2i(left_qr_code.point[3].x, left_qr_code.point[3].y),
-    Eigen::Vector2i(right_qr_code.point[3].x, right_qr_code.point[3].y)
+  const Eigen::Vector3f end_point_y_axis = inference.estimateSpatial(
+    Eigen::Vector2i(left_qr_code.point[2].x, left_qr_code.point[2].y),
+    Eigen::Vector2i(right_qr_code.point[2].x, right_qr_code.point[2].y)
+  ).cwiseProduct(
+    Eigen::Vector3f(1.0f, -1.0f, 1.0f)
   );
-  const Eigen::Vector3d middle_point = (end_point_x_axis + end_point_y_axis) * 0.5;
-  const Eigen::Vector3d x_axis = end_point_x_axis - origin;
-  const Eigen::Vector3d y_axis = end_point_y_axis - origin;
-
+  const Eigen::Vector3f middle_point = (end_point_x_axis + end_point_y_axis) * 0.5;
+  std::cout << "origin:\n" << origin << std::endl;
+  std::cout << "end_point_x_axis:\n" << end_point_x_axis << std::endl;
+  std::cout << "end_point_y_axis:\n" << end_point_y_axis << std::endl;
   // Based on estimated coordinate axes build up pose of qr code.
-  const Eigen::Vector3d z_axis = x_axis.cross(y_axis);
-  const Eigen::Quaterniond orientation = Eigen::Quaterniond::FromTwoVectors(z_axis, Eigen::Vector3d::UnitZ());
+  const Eigen::Vector3f x_axis = end_point_x_axis - origin;
+  const Eigen::Vector3f y_axis = end_point_y_axis - origin;
+  const Eigen::Vector3f z_axis = x_axis.cross(y_axis);
+  const Eigen::DiagonalMatrix<float, 3> camera_coordinate_sysytem(1.0f, 1.0f, 1.0f);
+  const auto camera_coordinate_sysytem_inv = camera_coordinate_sysytem.inverse();
+
+  Eigen::Matrix3f qr_code_coordinate_system;
+  qr_code_coordinate_system.col(0) = x_axis.normalized();
+  qr_code_coordinate_system.col(1) = y_axis.normalized();
+  qr_code_coordinate_system.col(2) = z_axis.normalized();
+  const Eigen::Matrix3f R = qr_code_coordinate_system * camera_coordinate_sysytem_inv;
+  std::cout << "R:\n" << R << std::endl;
+  const Angle angle_x = std::acos(y_axis.y() / y_axis.norm());
+  const Angle angle_y = std::acos(z_axis.z() / z_axis.norm());
+  const Angle angle_z = std::acos(x_axis.x() / x_axis.norm());
+  std::cout << "x axis:\n" << x_axis << std::endl;
+  std::cout << "y axis:\n" << y_axis << std::endl;  
+  std::cout << "angle x = " << angle_x << std::endl;
+  std::cout << "angle y = " << angle_y << std::endl;
+  std::cout << "angle z = " << angle_z << std::endl;    
+  // const Eigen::Quaterniond orientation = Eigen::Quaterniond::FromTwoVectors(z_axis, Eigen::Vector3f::UnitZ());
+  Eigen::Quaternionf orientation(R);
+  // orientation = Eigen::AngleAxisf(angle_x, Eigen::Vector3f::UnitX())
+  //   * Eigen::AngleAxisf(angle_y, Eigen::Vector3f::UnitY())
+  //   * Eigen::AngleAxisf(angle_z, Eigen::Vector3f::UnitZ());
 
   // Return result in ROS format.
   geometry_msgs::msg::Pose pose;
