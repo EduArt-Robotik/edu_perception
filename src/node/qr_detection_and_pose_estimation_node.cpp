@@ -1,6 +1,7 @@
 #include "qr_detection_and_pose_estimation.hpp"
 
 #include <edu_perception/stereo/pose_estimation.hpp>
+#include <edu_perception/transform.hpp>
 
 #include <rclcpp/executors.hpp>
 #include <rclcpp/logging.hpp>
@@ -42,6 +43,8 @@ QrDetectionAndPoseEstimation::Parameter QrDetectionAndPoseEstimation::get_parame
     "qr_code_detector.roi_increase_rate.vertical",
     default_parameter.qr_code_detector.roi_increase_rate.vertical);  
   ros_node.declare_parameter<std::string>("frame_id", default_parameter.frame_id);
+  ros_node.declare_parameter<std::string>(
+    "frame_id_object_origin", default_parameter.frame_id_object_origin);
 
   parameter.camera.fps = ros_node.get_parameter("camera.fps").as_double();
   parameter.camera.width = ros_node.get_parameter("camera.width").as_int();
@@ -53,6 +56,7 @@ QrDetectionAndPoseEstimation::Parameter QrDetectionAndPoseEstimation::get_parame
   parameter.qr_code_detector.roi_increase_rate.vertical = ros_node.get_parameter(
     "qr_code_detector.roi_increase_rate.vertical").as_double();
   parameter.frame_id = ros_node.get_parameter("frame_id").as_string();
+  parameter.frame_id_object_origin = ros_node.get_parameter("frame_id_object_origin").as_string();
 
   return parameter;
 }
@@ -69,12 +73,11 @@ QrDetectionAndPoseEstimation::QrDetectionAndPoseEstimation()
       std::make_shared<detector::QrCodeDetector>(_parameter.qr_code_detector),
       std::make_shared<detector::QrCodeDetector>(_parameter.qr_code_detector)
     }
+  , _tf_buffer(std::make_unique<tf2_ros::Buffer>(get_clock()))
+  , _tf_listener(std::make_shared<tf2_ros::TransformListener>(*_tf_buffer))
 {
   setupCameraPipeline(_parameter);
   const stereo::StereoInference::Parameter stereo_inference_parameter{
-    // \todo remove lines below when not longer needed!
-    // static_cast<std::size_t>(_camera[Camera::Left]->getResolutionWidth()),
-    // static_cast<std::size_t>(_camera[Camera::Left]->getResolutionHeight()),
     _parameter.camera.width,
     _parameter.camera.height,
     static_cast<std::size_t>(_camera[Camera::Left]->getResolutionWidth()),
@@ -100,6 +103,7 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
 {
   RCLCPP_INFO(get_logger(), __PRETTY_FUNCTION__);
   try {
+    // Getting images from the camera pipeline.
     auto stamp_start = get_clock()->now();
     const auto image_frame_left = _output_queue[Camera::Left]->get<dai::ImgFrame>();
     auto stamp_stop = get_clock()->now();
@@ -123,6 +127,7 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
 
     stamp_start = get_clock()->now();
 
+    // Detect and decode QR codes in the received images.
     // Try with async function call to reduce execution time.
     auto future_left = std::async(
       std::launch::async, [&](){
@@ -141,6 +146,7 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
     stamp_stop = get_clock()->now();
     RCLCPP_INFO(get_logger(), "decode images: %ld us", (stamp_stop - stamp_start).nanoseconds() / 1000);    
 
+    // Providing debug images if it is requested.
     if (_pub_debug_image->get_subscription_count() > 0) {
       if (qr_code_left.text != "") {
         draw_polygon_on_image(cv_frame_left, qr_code_left);
@@ -168,7 +174,8 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
       return;
     }
 
-    stamp_start = get_clock()->now();    
+    stamp_start = get_clock()->now();
+    // Estimate pose from the detected QR codes.
     geometry_msgs::msg::PoseStamped pose_msg;
 
     pose_msg.header.frame_id = getFrameIdPrefix() + _parameter.frame_id;
@@ -176,6 +183,20 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
     pose_msg.pose = stereo::estimate_pose_of_qr_code(
       *_stereo_inference, qr_code_left, qr_code_right
     );
+
+    // Check if QR pose can be transformed in the given frame id.
+    geometry_msgs::msg::TransformStamped t_qr_code_to_base_link;
+    try {
+      t_qr_code_to_base_link = _tf_buffer->lookupTransform(
+        _parameter.frame_id_object_origin, "eduard/red/qr_code/rear", tf2::TimePointZero
+      );
+      // Transform is available. Transform pose in given frame id.
+      pose_msg.pose = transform_pose(pose_msg.pose, t_qr_code_to_base_link.transform);
+    }
+    catch (const tf2::TransformException & ex) {
+      // No transform available. Skip the pose transform.
+    }
+
     _pub_pose->publish(pose_msg);
     stamp_stop = get_clock()->now();
     RCLCPP_INFO(get_logger(), "estimate pose and publishing it: %ld us\n\n", (stamp_stop - stamp_start).nanoseconds() / 1000);

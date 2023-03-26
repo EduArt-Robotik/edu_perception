@@ -17,4 +17,5 @@ ament_target_dependencies(qr_detection_and_pose_estimation
   "geometry_msgs"
   "sensor_msgs"
   "cv_bridge"
+  "tf2_ros"
 )

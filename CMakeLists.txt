@@ -19,6 +19,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED NO_MODULE)
+find_package(tf2_ros REQUIRED)
 
 # Building Subdirectories
 add_subdirectory(src/lib)

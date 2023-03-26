@@ -3,6 +3,7 @@ add_library(edu_perception
   stereo_inference.cpp
   qr_code_detector.cpp
   pose_estimation.cpp
+  transform.cpp
 )
 target_link_libraries(edu_perception
   Eigen3::Eigen

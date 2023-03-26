@@ -13,6 +13,8 @@
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <sensor_msgs/msg/image.hpp>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
 
 #include <memory>
 #include <array>
@@ -45,7 +47,8 @@ public:
     detector::QrCodeDetector::Parameter qr_code_detector = {
       { 0.2f, 0.4f }, "Eduard"
     };
-    std::string frame_id = "qr_code_camera";
+    std::string frame_id = "qr_code_camera"; // frame id of the used camera
+    std::string frame_id_object_origin = "eduard/red/base_link"; // origin of the object qr code is mounted on
   };
 
   static Parameter get_parameter(rclcpp::Node& ros_node, const Parameter& default_parameter);
@@ -83,6 +86,8 @@ private:
   std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>> _pub_pose;
   std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> _pub_debug_image;
   std::shared_ptr<rclcpp::TimerBase> _timer_processing_camera;
+  std::unique_ptr<tf2_ros::Buffer> _tf_buffer;
+  std::shared_ptr<tf2_ros::TransformListener> _tf_listener;
 };
 
 } // end namespace perception
