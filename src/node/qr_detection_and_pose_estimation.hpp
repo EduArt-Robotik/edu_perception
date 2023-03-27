@@ -48,9 +48,9 @@ public:
     detector::QrCodeDetector::Parameter qr_code_detector = {
       { 0.2f, 0.4f }, "Eduard"
     };
-    LowPassFilter<decltype(geometry_msgs::msg::Pose::orientation)>::Parameter filter = {
-      { 1.0f }
-    };
+    LowPassFilter<Eigen::Quaternionf, decltype(geometry_msgs::msg::Pose::orientation)>::Parameter filter_orientation = {
+      1.0f };
+    LowPassFilter<decltype(geometry_msgs::msg::Pose::position)>::Parameter filter_position = { 1.0f };
     std::string frame_id = "qr_code_camera"; // frame id of the used camera
     std::string frame_id_object_origin = "eduard/red/base_link"; // origin of the object qr code is mounted on
   };
@@ -86,7 +86,8 @@ private:
 
   std::array<std::shared_ptr<detector::QrCodeDetector>, Camera::Count> _qr_code_detector;
   std::unique_ptr<stereo::StereoInference> _stereo_inference;
-  LowPassFilter<decltype(geometry_msgs::msg::Pose::orientation)> _filter_orientation;
+  LowPassFilter<Eigen::Quaternionf, decltype(geometry_msgs::msg::Pose::orientation)> _filter_orientation;
+  LowPassFilter<decltype(geometry_msgs::msg::Pose::position)> _filter_position;
 
   std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>> _pub_pose;
   std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> _pub_debug_image;

@@ -41,7 +41,11 @@ QrDetectionAndPoseEstimation::Parameter QrDetectionAndPoseEstimation::get_parame
     default_parameter.qr_code_detector.roi_increase_rate.horizontal);
   ros_node.declare_parameter<float>(
     "qr_code_detector.roi_increase_rate.vertical",
-    default_parameter.qr_code_detector.roi_increase_rate.vertical);  
+    default_parameter.qr_code_detector.roi_increase_rate.vertical);
+  ros_node.declare_parameter<float>(
+    "filter.orientation.weight", default_parameter.filter_orientation.weight);
+  ros_node.declare_parameter<float>(
+    "filter.position.weight", default_parameter.filter_position.weight);    
   ros_node.declare_parameter<std::string>("frame_id", default_parameter.frame_id);
   ros_node.declare_parameter<std::string>(
     "frame_id_object_origin", default_parameter.frame_id_object_origin);
@@ -55,6 +59,8 @@ QrDetectionAndPoseEstimation::Parameter QrDetectionAndPoseEstimation::get_parame
     "qr_code_detector.roi_increase_rate.horizontal").as_double();
   parameter.qr_code_detector.roi_increase_rate.vertical = ros_node.get_parameter(
     "qr_code_detector.roi_increase_rate.vertical").as_double();
+  parameter.filter_orientation.weight = ros_node.get_parameter("filter.orientation.weight").as_double();
+  parameter.filter_position.weight = ros_node.get_parameter("filter.position.weight").as_double();  
   parameter.frame_id = ros_node.get_parameter("frame_id").as_string();
   parameter.frame_id_object_origin = ros_node.get_parameter("frame_id_object_origin").as_string();
 
@@ -73,7 +79,8 @@ QrDetectionAndPoseEstimation::QrDetectionAndPoseEstimation()
       std::make_shared<detector::QrCodeDetector>(_parameter.qr_code_detector),
       std::make_shared<detector::QrCodeDetector>(_parameter.qr_code_detector)
     }
-  , _filter_orientation(_parameter.filter, decltype(geometry_msgs::msg::Pose::orientation){ })
+  , _filter_orientation(_parameter.filter_orientation)
+  , _filter_position(_parameter.filter_position)
   , _tf_buffer(std::make_unique<tf2_ros::Buffer>(get_clock()))
   , _tf_listener(std::make_shared<tf2_ros::TransformListener>(*_tf_buffer))
 {
@@ -86,6 +93,7 @@ QrDetectionAndPoseEstimation::QrDetectionAndPoseEstimation()
   };
   _stereo_inference = std::make_unique<stereo::StereoInference>(_camera_device, stereo_inference_parameter);
   _filter_orientation.clear();
+  _filter_position.clear();
 
   _pub_pose = create_publisher<geometry_msgs::msg::PoseStamped>("qr_code_pose", rclcpp::SensorDataQoS());
   _pub_debug_image = create_publisher<sensor_msgs::msg::Image>("debug_image", rclcpp::QoS(2).reliable());
@@ -186,9 +194,10 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
       *_stereo_inference, qr_code_left, qr_code_right
     );
 
-    _filter_orientation(pose_msg.pose.orientation);
-    pose_msg.pose.orientation = _filter_orientation.channel<0>().getValue();
-
+    _filter_orientation.update(pose_msg.pose.orientation);
+    pose_msg.pose.orientation = _filter_orientation.getValue();
+    _filter_position.update(pose_msg.pose.position);
+    pose_msg.pose.position = _filter_position.getValue();
 
     // Check if QR pose can be transformed in the given frame id.
     geometry_msgs::msg::TransformStamped t_qr_code_to_base_link;

@@ -2,11 +2,18 @@
   ros__parameters:
     use_sim_time: false
     frame_id: object_sensor/front
+    frame_id_object_origin: eduard/red/base_link
 
     camera:
       fps: 10.0
       height: 400
       width: 1280
+
+    filter:
+      orientation:
+        weight: 0.3
+      position:
+        weight: 0.4
 
     qr_code_detector:
       qr_code_text_filter: Eduard
