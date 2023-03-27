@@ -7,6 +7,7 @@
 
 #include <edu_perception/detector/qr_code_detector.hpp>
 #include <edu_perception/stereo/stereo_inference.hpp>
+#include <edu_perception/low_pass_filter.hpp>
 
 #include <rclcpp/node.hpp>
 #include <rclcpp/publisher.hpp>
@@ -47,6 +48,9 @@ public:
     detector::QrCodeDetector::Parameter qr_code_detector = {
       { 0.2f, 0.4f }, "Eduard"
     };
+    LowPassFilter<decltype(geometry_msgs::msg::Pose::orientation)>::Parameter filter = {
+      { 1.0f }
+    };
     std::string frame_id = "qr_code_camera"; // frame id of the used camera
     std::string frame_id_object_origin = "eduard/red/base_link"; // origin of the object qr code is mounted on
   };
@@ -82,6 +86,7 @@ private:
 
   std::array<std::shared_ptr<detector::QrCodeDetector>, Camera::Count> _qr_code_detector;
   std::unique_ptr<stereo::StereoInference> _stereo_inference;
+  LowPassFilter<decltype(geometry_msgs::msg::Pose::orientation)> _filter_orientation;
 
   std::shared_ptr<rclcpp::Publisher<geometry_msgs::msg::PoseStamped>> _pub_pose;
   std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> _pub_debug_image;

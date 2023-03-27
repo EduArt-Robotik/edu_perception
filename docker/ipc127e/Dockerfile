@@ -15,6 +15,8 @@ RUN apt-get update \
     ros-$ROS_DISTRO-cv-bridge \
     ros-$ROS_DISTRO-rmw-fastrtps-cpp \
     ros-$ROS_DISTRO-fastrtps \
+    ros-$ROS_DISTRO-tf2-ros \
+    ros-$ROS_DISTRO-tf2-geometry-msgs \    
     libeigen3-dev \
     libzbar-dev \
     python3-colcon-common-extensions \

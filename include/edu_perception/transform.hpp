@@ -11,6 +11,7 @@
 namespace eduart {
 namespace perception {
 
+// Note: this function transform backwards at the moment!
 geometry_msgs::msg::Pose transform_pose(
   const geometry_msgs::msg::Pose& pose_in, const geometry_msgs::msg::Transform& transform);
 
