@@ -2,7 +2,7 @@
   ros__parameters:
     use_sim_time: false
     frame_id: object_sensor/front
-    frame_id_object_origin: eduard/red/base_link
+    frame_id_object_origin: eduard/blue/base_link
 
     camera:
       fps: 10.0
