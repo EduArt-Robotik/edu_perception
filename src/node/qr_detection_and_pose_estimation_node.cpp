@@ -203,7 +203,7 @@ void QrDetectionAndPoseEstimation::callbackProcessingCamera()
     geometry_msgs::msg::TransformStamped t_qr_code_to_base_link;
     try {
       t_qr_code_to_base_link = _tf_buffer->lookupTransform(
-        _parameter.frame_id_object_origin, "eduard/red/qr_code/rear", tf2::TimePointZero
+        _parameter.frame_id_object_origin, /* "eduard/red/qr_code/rear" */ qr_code_left.text, tf2::TimePointZero
       );
       // Transform is available. Transform pose in given frame id.
       pose_msg.pose = transform_pose(pose_msg.pose, t_qr_code_to_base_link.transform);
