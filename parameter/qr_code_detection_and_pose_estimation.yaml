@@ -16,7 +16,7 @@
         weight: 0.4
 
     qr_code_detector:
-      qr_code_text_filter: Eduard
+      qr_code_text_filter: eduard
       roi_increase_rate:
         horizontal: 0.4
         vertical: 0.2
