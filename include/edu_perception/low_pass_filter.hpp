@@ -39,6 +39,7 @@ struct LowPassFilterChannelOperation<decltype(geometry_msgs::msg::Pose::position
   using DataType = decltype(geometry_msgs::msg::Pose::position);
 
   static inline DataType update(const DataType& input, const DataType& previous_value, const float filter_weight) {
+    // \todo actually the operation above (floating point) should be used here.
     DataType updated_value;
     updated_value.x = static_cast<double>(1.0f - filter_weight) * previous_value.x + static_cast<double>(filter_weight) * input.x;
     updated_value.y = static_cast<double>(1.0f - filter_weight) * previous_value.y + static_cast<double>(filter_weight) * input.y;
