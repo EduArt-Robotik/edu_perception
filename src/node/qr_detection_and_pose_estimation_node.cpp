@@ -20,10 +20,8 @@
 namespace eduart {
 namespace perception {
 
-using std::chrono::duration;
 using std::chrono::seconds;
 using std::chrono::milliseconds;
-using std::chrono::round;
 using namespace std::chrono_literals;
 
 QrDetectionAndPoseEstimation::Parameter QrDetectionAndPoseEstimation::get_parameter(
