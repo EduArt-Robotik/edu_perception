@@ -21,7 +21,10 @@ RUN apt-get update \
 USER $USER
 
 # set up ros workspace
-COPY ./edu_perception /home/$USER/ros/src/edu_perception
+COPY --chown=$USER ./edu_perception /home/$USER/ros/src/edu_perception
+RUN cd /home/$USER/ros/src/edu_perception \
+    && sudo chown user:user -R /home/$USER/ros/src/edu_perception \
+    && git submodule update --init --recursive
 
 # build EduArt packages nodes
 RUN source /opt/ros/$ROS_DISTRO/setup.bash \

@@ -12,7 +12,6 @@ uninstall-udev-rule:
 
 download-sources:
 	git clone --branch main https://github.com/EduArt-Robotik/edu_perception.git
-	cd edu_perception; git submodule update --init --recursive
 
 build-docker:
 	docker build -t $(image_name) .
