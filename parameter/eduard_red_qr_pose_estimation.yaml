@@ -8,7 +8,7 @@
       fps: 10.0
       height: 400
       width: 1280
-      device: 'usb'
+      device: '192.168.0.110'
 
     filter:
       orientation:
