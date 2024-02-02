@@ -10,7 +10,7 @@ services:
     ipc: host
     pid: host
     mem_limit: 300mb
-    command: bash -c 'ros2 launch edu_perception qr_code_detection_and_pose_estimation.launch.py'
+    command: bash -c 'ros2 launch edu_perception eduard_red_qr_pose_estimation.launch.py'
     environment:
         - EDU_ROBOT_NAMESPACE=eduard/red
     networks:

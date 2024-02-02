@@ -23,7 +23,7 @@ USER $USER
 # set up ros workspace
 COPY --chown=$USER ./edu_perception /home/$USER/ros/src/edu_perception
 RUN cd /home/$USER/ros/src/edu_perception \
-    && sudo chown user:user -R /home/$USER/ros/src/edu_perception \
+    && chown user:user -R /home/$USER/ros/src/edu_perception \
     && git submodule update --init --recursive
 
 # build EduArt packages nodes
@@ -33,5 +33,5 @@ RUN source /opt/ros/$ROS_DISTRO/setup.bash \
 
 # add entry point
 COPY --chown=$USER ./entrypoint /home/$USER/
-RUN sudo chmod a+x /home/$USER/entrypoint
+RUN chmod a+x /home/$USER/entrypoint
 ENTRYPOINT [ "/home/user/entrypoint" ]
