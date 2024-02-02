@@ -19,6 +19,7 @@
 
 #include <memory>
 #include <array>
+#include <regex>
 
 // Forward Declarations
 namespace dai {
@@ -44,6 +45,13 @@ public:
       float fps = 5.0f;
       std::size_t width = 1280;
       std::size_t height = 800;
+      std::string device = "usb";
+
+      inline bool isEthernet() {
+        const std::regex ipv4(
+          "(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])");
+        return std::regex_match(device, ipv4);
+      }
     } camera;
     detector::QrCodeDetector::Parameter qr_code_detector = {
       { 0.2f, 0.4f }, "Eduard"

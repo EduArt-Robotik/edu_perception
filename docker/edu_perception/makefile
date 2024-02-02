@@ -1,4 +1,4 @@
-image_name = eduart-perception-ipc127e:0.1.0
+image_name = eduart-perception:0.2.0
 
 install-udev-rule:
 	sudo cp 80-movidius.rules /etc/udev/rules.d/
@@ -12,7 +12,6 @@ uninstall-udev-rule:
 
 download-sources:
 	git clone --branch main https://github.com/EduArt-Robotik/edu_perception.git
-	cd edu_perception; git submodule update --init --recursive
 
 build-docker:
 	docker build -t $(image_name) .
@@ -21,8 +20,11 @@ upload-docker:
 	docker tag $(image_name) eduartrobotik/$(image_name)
 	docker push eduartrobotik/$(image_name)
 
+build-multiarch-and-push:
+	docker buildx build --platform linux/amd64,linux/arm64/v8 -t eduartrobotik/$(image_name) --push .
+
 all: download-sources build-docker
-	echo "build edu_robot and edu_robot_control into a docker image"
+	$(info Creating EduArt's robot library Docker image "$(image_name)".)
 
 clean:
 	rm -rf edu_perception

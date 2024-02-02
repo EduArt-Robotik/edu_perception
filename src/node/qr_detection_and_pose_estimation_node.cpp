@@ -20,10 +20,8 @@
 namespace eduart {
 namespace perception {
 
-using std::chrono::duration;
 using std::chrono::seconds;
 using std::chrono::milliseconds;
-using std::chrono::round;
 using namespace std::chrono_literals;
 
 QrDetectionAndPoseEstimation::Parameter QrDetectionAndPoseEstimation::get_parameter(
@@ -34,6 +32,7 @@ QrDetectionAndPoseEstimation::Parameter QrDetectionAndPoseEstimation::get_parame
   ros_node.declare_parameter<float>("camera.fps", default_parameter.camera.fps);
   ros_node.declare_parameter<int>("camera.width", default_parameter.camera.width);
   ros_node.declare_parameter<int>("camera.height", default_parameter.camera.height);
+  ros_node.declare_parameter<std::string>("camera.device", default_parameter.camera.device);
   ros_node.declare_parameter<std::string>(
     "qr_code_detector.qr_code_text_filter", default_parameter.qr_code_detector.qr_code_text_filter);
   ros_node.declare_parameter<float>(
@@ -53,6 +52,7 @@ QrDetectionAndPoseEstimation::Parameter QrDetectionAndPoseEstimation::get_parame
   parameter.camera.fps = ros_node.get_parameter("camera.fps").as_double();
   parameter.camera.width = ros_node.get_parameter("camera.width").as_int();
   parameter.camera.height = ros_node.get_parameter("camera.height").as_int();
+  parameter.camera.device = ros_node.get_parameter("camera.device").as_string();
   parameter.qr_code_detector.qr_code_text_filter = ros_node.get_parameter(
     "qr_code_detector.qr_code_text_filter").as_string();
   parameter.qr_code_detector.roi_increase_rate.horizontal = ros_node.get_parameter(
@@ -273,7 +273,15 @@ void QrDetectionAndPoseEstimation::setupCameraPipeline(const Parameter parameter
   _image_manip[Camera::Right]->out.link(_camera_output[Camera::Right]->input);
 
   // Initialize device and data queues.
-  _camera_device = std::make_shared<dai::Device>(*_camera_pipeline);
+  if (_parameter.camera.isEthernet()) {
+    RCLCPP_INFO(get_logger(), "try to connect camera using ethernet net (ip = %s)", _parameter.camera.device.c_str());
+    const auto device_info = dai::DeviceInfo(_parameter.camera.device);
+    _camera_device = std::make_shared<dai::Device>(*_camera_pipeline, device_info);    
+  }
+  else {
+    RCLCPP_INFO(get_logger(), "try to connect camera using USB port.");
+    _camera_device = std::make_shared<dai::Device>(*_camera_pipeline);
+  }
   _output_queue[Camera::Left] = _camera_device->getOutputQueue("camera_left", 2, true);
   _output_queue[Camera::Right] = _camera_device->getOutputQueue("camera_right", 2, true);
 }
