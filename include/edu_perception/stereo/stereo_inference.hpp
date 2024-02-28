@@ -12,6 +12,8 @@
 
 #include <Eigen/Core>
 
+#include <opencv2/core.hpp>
+
 // Forward Declarations
 namespace dai {
 class Device;
@@ -46,6 +48,10 @@ protected:
 private:
   const Parameter _parameter;
   std::shared_ptr<dai::Device> _device;
+
+  cv::Mat _projection_left;
+  cv::Mat _projection_right;
+
   Angle0To2Pi _horizontal_fov;
   float _disparity_scale_factor;
   float _resize_factor;
