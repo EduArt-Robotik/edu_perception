@@ -110,7 +110,7 @@ void OakDCamera::publishCameraInfo(std::shared_ptr<dai::Device> camera_device, c
 {
   const auto calibration_data = camera_device->readCalibration();
   const auto intrinsic = calibration_data.getCameraIntrinsics(
-    dai::CameraBoardSocket::CENTER, _parameter.width, _parameter.height);
+    dai::CameraBoardSocket::CENTER, parameter.width, parameter.height);
   const auto distortion = calibration_data.getDistortionCoefficients(
     dai::CameraBoardSocket::CENTER);
   // const auto distortion_model = calibration_data.getDistortionModel(
@@ -122,8 +122,8 @@ void OakDCamera::publishCameraInfo(std::shared_ptr<dai::Device> camera_device, c
   camera_info.header.frame_id = _parameter.frame_id;
   camera_info.header.stamp = get_clock()->now();
 
-  camera_info.height = _parameter.height;
-  camera_info.width = _parameter.width;
+  camera_info.height = parameter.height;
+  camera_info.width = parameter.width;
 
   camera_info.distortion_model = "plumb_bob";
   camera_info.d.resize(5);
