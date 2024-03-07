@@ -29,6 +29,7 @@ class DataOutputQueue;
 
 namespace node {
 class MonoCamera;
+class Camera;
 class XLinkOut;
 class ImageManip;
 } // end namespace node
@@ -44,7 +45,7 @@ public:
     struct {
       float fps = 5.0f;
       std::size_t width = 1280;
-      std::size_t height = 800;
+      std::size_t height = 720;
       std::string device = "usb";
 
       inline bool isEthernet() {
@@ -87,7 +88,7 @@ private:
 
   // \todo check if it is necessary to keep depthai objects alive, because it seems the pipeline keeps also
   //       a copy of the shared pointer.
-  std::array<std::shared_ptr<dai::node::MonoCamera>, Camera::Count> _camera;
+  std::array<std::shared_ptr<dai::node::Camera>, Camera::Count> _camera;
   std::array<std::shared_ptr<dai::node::ImageManip>, Camera::Count> _image_manip;
   std::array<std::shared_ptr<dai::node::XLinkOut>, Camera::Count> _camera_output;
   std::array<std::shared_ptr<dai::DataOutputQueue>, Camera::Count> _output_queue;

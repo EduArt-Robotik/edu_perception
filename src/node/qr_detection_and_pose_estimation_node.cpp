@@ -1,3 +1,4 @@
+#include "depthai/pipeline/node/Camera.hpp"
 #include "qr_detection_and_pose_estimation.hpp"
 
 #include <edu_perception/stereo/pose_estimation.hpp>
@@ -88,8 +89,8 @@ QrDetectionAndPoseEstimation::QrDetectionAndPoseEstimation()
   const stereo::StereoInference::Parameter stereo_inference_parameter{
     _parameter.camera.width,
     _parameter.camera.height,
-    static_cast<std::size_t>(_camera[Camera::Left]->getResolutionWidth()),
-    static_cast<std::size_t>(_camera[Camera::Left]->getResolutionHeight()) 
+    static_cast<std::size_t>(1280),
+    static_cast<std::size_t>(720) 
   };
   _stereo_inference = std::make_unique<stereo::StereoInference>(_camera_device, stereo_inference_parameter);
   _filter_orientation.clear();
@@ -227,40 +228,42 @@ void QrDetectionAndPoseEstimation::setupCameraPipeline(const Parameter parameter
   _camera_pipeline = std::make_shared<dai::Pipeline>();
 
   // Define node 1: camera left.
-  _camera[Camera::Left] = _camera_pipeline->create<dai::node::MonoCamera>();
+  _camera[Camera::Left] = _camera_pipeline->create<dai::node::Camera>();
   _camera[Camera::Left]->setBoardSocket(dai::CameraBoardSocket::LEFT);
-  _camera[Camera::Left]->setResolution(dai::MonoCameraProperties::SensorResolution::THE_800_P);
+  // _camera[Camera::Left]->setResolution(dai::MonoCameraProperties::SensorResolution::THE_800_P);
+  _camera[Camera::Left]->setVideoSize(1280, 720);
   _camera[Camera::Left]->setFps(parameter.camera.fps);
   _camera[Camera::Left]->initialControl.setAutoFocusMode(dai::CameraControl::AutoFocusMode::AUTO);
   _camera[Camera::Left]->initialControl.setAutoExposureEnable();
   _camera[Camera::Left]->initialControl.setSceneMode(dai::CameraControl::SceneMode::BARCODE);
 
   // Define node 2: camera right.
-  _camera[Camera::Right] = _camera_pipeline->create<dai::node::MonoCamera>();  
+  _camera[Camera::Right] = _camera_pipeline->create<dai::node::Camera>();  
   _camera[Camera::Right]->setBoardSocket(dai::CameraBoardSocket::RIGHT);
-  _camera[Camera::Right]->setResolution(dai::MonoCameraProperties::SensorResolution::THE_800_P);
+  // _camera[Camera::Right]->setResolution(dai::MonoCameraProperties::SensorResolution::THE_720_P);
+  _camera[Camera::Right]->setVideoSize(1280, 720);
   _camera[Camera::Right]->setFps(parameter.camera.fps);
   _camera[Camera::Right]->initialControl.setAutoFocusMode(dai::CameraControl::AutoFocusMode::AUTO);
   _camera[Camera::Right]->initialControl.setAutoExposureEnable();
   _camera[Camera::Right]->initialControl.setSceneMode(dai::CameraControl::SceneMode::BARCODE);
 
   // Define node 3: cropping left camera image.
-  const std::size_t x_border = (_camera[Camera::Left]->getResolutionWidth() - parameter.camera.width) / 2;
-  const std::size_t y_border = (_camera[Camera::Left]->getResolutionHeight() - parameter.camera.height) / 2;
-  const float x_min = x_border / static_cast<float>(_camera[Camera::Left]->getResolutionWidth());
-  const float y_min = y_border / static_cast<float>(_camera[Camera::Left]->getResolutionHeight());
-  const float x_max = (_camera[Camera::Left]->getResolutionWidth() - x_border)
-    / static_cast<float>(_camera[Camera::Left]->getResolutionWidth());
-  const float y_max = (_camera[Camera::Left]->getResolutionHeight() - y_border)
-    / static_cast<float>(_camera[Camera::Left]->getResolutionHeight());
+  const std::size_t x_border = (1280 - parameter.camera.width) / 2;
+  const std::size_t y_border = (720 - parameter.camera.height) / 2;
+  const float x_min = x_border / static_cast<float>(1280);
+  const float y_min = y_border / static_cast<float>(720);
+  const float x_max = (1280 - x_border)
+    / static_cast<float>(1280);
+  const float y_max = (720 - y_border)
+    / static_cast<float>(720);
   _image_manip[Camera::Left] = _camera_pipeline->create<dai::node::ImageManip>();
   _image_manip[Camera::Left]->initialConfig.setCropRect(x_min, y_min, x_max, y_max);
-  _camera[Camera::Left]->out.link(_image_manip[Camera::Left]->inputImage);
+  _camera[Camera::Left]->video.link(_image_manip[Camera::Left]->inputImage);
 
   // Define node 4: cropping right camera image.
   _image_manip[Camera::Right] = _camera_pipeline->create<dai::node::ImageManip>();
   _image_manip[Camera::Right]->initialConfig.setCropRect(x_min, y_min, x_max, y_max);
-  _camera[Camera::Right]->out.link(_image_manip[Camera::Right]->inputImage);
+  _camera[Camera::Right]->video.link(_image_manip[Camera::Right]->inputImage);
 
   // Define node 5: output camera left.
   _camera_output[Camera::Left] = _camera_pipeline->create<dai::node::XLinkOut>();

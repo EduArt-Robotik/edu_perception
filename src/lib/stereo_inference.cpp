@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <depthai/depthai.hpp>
 #include <opencv2/calib3d.hpp>
+#include <opencv2/core/types.hpp>
 
 namespace eduart {
 namespace perception {
@@ -17,11 +18,11 @@ static cv::Mat convert_to_mat(const std::vector<std::vector<float>>& in)
     return { };
   }
 
-  cv::Mat out(in.size(), in[0].size(), CV_32F);
+  cv::Mat out(in.size(), in[0].size(), CV_64F);
 
   for (std::size_t row = 0; row < in.size(); ++row) {
     for (std::size_t col = 0; col < in[0].size(); ++col) {
-      out.at<float>(row, col) = in[row][col];
+      out.at<double>(row, col) = in[row][col];
     }
   }
 
@@ -30,11 +31,11 @@ static cv::Mat convert_to_mat(const std::vector<std::vector<float>>& in)
 
 static cv::Mat extract_rotation(const cv::Mat& transform)
 {
-  cv::Mat rotation(3, 3, CV_32F);
+  cv::Mat rotation(3, 3, CV_64F);
 
   for (std::size_t row = 0; row < 3; ++row) {
     for (std::size_t col = 0; col < 3; ++col) {
-      rotation.at<float>(row, col) = transform.at<float>(row, col);
+      rotation.at<double>(row, col) = transform.at<double>(row, col);
     }
   }
 
@@ -43,11 +44,11 @@ static cv::Mat extract_rotation(const cv::Mat& transform)
 
 static cv::Mat extract_translation(const cv::Mat& transform)
 {
-  cv::Mat translation(3, 1, CV_32F);
+  cv::Mat translation = cv::Mat::zeros(3, 1, CV_64F);
 
-  translation.at<float>(0, 0) = transform.at<float>(0, 3);
-  translation.at<float>(1, 0) = transform.at<float>(1, 3);
-  translation.at<float>(2, 0) = transform.at<float>(2, 3);
+  translation.at<double>(0, 0) = transform.at<double>(0, 3);
+  translation.at<double>(1, 0) = transform.at<double>(1, 3);
+  translation.at<double>(2, 0) = transform.at<double>(2, 3);
 
   return translation;
 }
@@ -81,10 +82,16 @@ StereoInference::StereoInference(std::shared_ptr<dai::Device> device, const Para
   std::cout << "\nintrinsic_right:\n" << intrinsic_right << std::endl;
   std::cout << "extrinsic\n" << extrinsic << std::endl;
 
+  cv::Mat rotation = extract_rotation(extrinsic);
+  cv::Mat translation = extract_translation(extrinsic);
+  std::cout << "rotation:\n" << rotation << std::endl;
+  std::cout << "translation:\n" << translation << std::endl;
+  cv::Mat R1, R2, Q;
+
   cv::stereoRectify(
     intrinsic_left, distortion_left, intrinsic_right, distortion_right,
-    cv::Size(_parameter.width, _parameter.height), extract_rotation(extrinsic),
-    extract_translation(extrinsic), cv::Mat(), cv::Mat(), _projection_left, _projection_right, cv::Mat()
+    cv::Size(_parameter.width, _parameter.height), rotation,
+    translation, R1, R2, _projection_left, _projection_right, Q
   );
 
   std::cout << "projection_left:\n" << _projection_left << std::endl;
@@ -103,10 +110,22 @@ StereoInference::StereoInference(std::shared_ptr<dai::Device> device, const Para
 
 Eigen::Vector3f StereoInference::estimateSpatial(const Eigen::Vector2i coord_a, const Eigen::Vector2i coord_b) const
 {
-  const std::size_t disparity = calculateDistance(coord_a, coord_b);
-  const float depth = calculateDepth(disparity);
+  cv::Mat left(2, 1, CV_64F);
+  cv::Mat right(2, 1, CV_64F);
+  left.at<double>(0, 0) = coord_a.x();
+  left.at<double>(1, 0) = coord_a.y();
+  right.at<double>(0, 0) = coord_b.x();
+  right.at<double>(1, 0) = coord_b.y();
+  cv::Mat result;
+  cv::triangulatePoints(_projection_left, _projection_right, left, right, result);
+  result /= result.at<double>(3, 0);
+  std::cout << "result:\n" << result << std::endl;
+
+  return Eigen::Vector3f(result.at<double>(0, 0), result.at<double>(1, 0), result.at<double>(2, 0));
+  // const std::size_t disparity = calculateDistance(coord_a, coord_b);
+  // const float depth = calculateDepth(disparity);
   
-  return calculateSpatial(coord_a, depth);
+  // return calculateSpatial(coord_a, depth);
 }
 
 float StereoInference::getFocalLengthPixel(const std::size_t pixel_width, const Angle horizontal_fov) const
