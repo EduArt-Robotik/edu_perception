@@ -2,7 +2,6 @@
 
 #include <cv_bridge/cv_bridge.h>
 
-#include <depthai/pipeline/node/Camera.hpp>
 #include <depthai/depthai.hpp>
 
 #include <opencv2/core/mat.hpp>
@@ -63,14 +62,19 @@ void OakDCamera::callbackProcessingCamera()
 {
   // Requesting Image
   const auto image = _camera_output_queue->get<dai::ImgFrame>();
-  const cv::Mat cv_image(image->getHeight(), image->getWidth(), CV_8UC3, image->getData().data());
+
+  if (image == nullptr) {
+    RCLCPP_ERROR(get_logger(), "No image received! Cancel processing camera.");
+    return;
+  }
+  cv::Mat cv_image(image->getHeight(), image->getWidth(), CV_8UC1, image->getData().data());
 
   // Publishing Image
   std_msgs::msg::Header header;
   header.frame_id = getFrameIdPrefix() + _parameter.frame_id;
   header.stamp = get_clock()->now();
-
-  _pub_image->publish(*cv_bridge::CvImage(header, "rgb", cv_image).toImageMsg());
+  const auto msg = cv_bridge::CvImage(header, "mono8", cv_image).toImageMsg();
+  _pub_image->publish(*msg);
 }
 
 void OakDCamera::setupCameraPipeline(const Parameter parameter)
@@ -79,8 +83,8 @@ void OakDCamera::setupCameraPipeline(const Parameter parameter)
   _camera_pipeline = std::make_shared<dai::Pipeline>();
 
   // Define Camera Node
-  _camera = _camera_pipeline->create<dai::node::Camera>();
-  _camera->setSize(parameter.width, parameter.height);
+  _camera = _camera_pipeline->create<dai::node::ColorCamera>();
+  _camera->setVideoSize(parameter.width, parameter.height);
   _camera->setFps(parameter.fps);
   _camera->setBoardSocket(dai::CameraBoardSocket::CENTER);
   _camera->initialControl.setAutoFocusMode(dai::CameraControl::AutoFocusMode::AUTO);
