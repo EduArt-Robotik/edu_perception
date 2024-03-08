@@ -18,6 +18,7 @@ def generate_launch_description():
     'parameter',
     'aruco_marker_pose_estimation.yaml'
   ])
+  robot_namespace = EnvironmentVariable('EDU_ROBOT_NAMESPACE', default_value="eduard")
 
   oak_camera_node = Node(
     package='edu_perception',
@@ -33,11 +34,36 @@ def generate_launch_description():
     executable='aruco_tracker_autostart',
     name='aruco_tracker',
     parameters=[parameter_file],
+    remappings=[
+      ('/oak_d_camera/camera_info', 'oak_d_camera/camera_info')
+    ],
     namespace=EnvironmentVariable('EDU_ROBOT_NAMESPACE', default_value="eduard"),
     output='screen'
   )
 
-  return LaunchConfiguration([
+  tf_publisher_aruco_marker = Node(
+    package='tf2_ros',
+    executable='static_transform_publisher',
+    arguments=[
+      '0', '0', '0', '0', '0', '0',
+      PathJoinSubstitution([robot_namespace, 'base_link']),
+      PathJoinSubstitution([robot_namespace, 'acuro_marker', 'pose'])
+    ]
+  )
+
+  tf_publisher_cam_front = Node(
+    package='tf2_ros',
+    executable='static_transform_publisher',
+    arguments=[
+      '0', '0', '0', '0', '0', '0',
+      PathJoinSubstitution([robot_namespace, 'base_link']),
+      PathJoinSubstitution([robot_namespace, 'oak_d'])
+    ]
+  )
+
+  return LaunchDescription([
     oak_camera_node,
-    aruco_marker_detection_node
+    aruco_marker_detection_node,
+    tf_publisher_cam_front,
+    tf_publisher_aruco_marker
   ])

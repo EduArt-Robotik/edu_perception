@@ -1,7 +1,7 @@
 /**:
   ros__parameters:
-    cam_base_topic: camera/image_raw
-    output_frame: ''
+    cam_base_topic: oak_d_camera/image_raw
+    output_frame: 'eduard/oak_d'
 
     marker_dict: 7X7_50
 

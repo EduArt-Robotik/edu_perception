@@ -38,9 +38,9 @@ class OakDCamera : public rclcpp::Node
 public:
   struct Parameter {
     float fps = 10.0f;
-    std::size_t width = 1280;
-    std::size_t height = 800;
-    std::string device = "192.168.0.111";
+    std::size_t width = 1920;
+    std::size_t height = 1080;
+    std::string device = "192.168.3.110";
     std::string frame_id = "oak_d";
 
     inline bool isEthernet() const {
@@ -63,7 +63,7 @@ private:
 
   const Parameter _parameter;
 
-  std::shared_ptr<dai::node::ColorCamera> _camera;
+  std::shared_ptr<dai::node::Camera> _camera;
   std::shared_ptr<dai::node::XLinkOut> _camera_output;
   std::shared_ptr<dai::DataOutputQueue> _camera_output_queue;
   std::shared_ptr<dai::Pipeline> _camera_pipeline;

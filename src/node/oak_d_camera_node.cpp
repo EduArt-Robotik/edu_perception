@@ -1,4 +1,5 @@
 #include "oak_d_camera_node.hpp"
+#include "depthai/pipeline/node/Camera.hpp"
 
 #include <cv_bridge/cv_bridge.h>
 
@@ -40,10 +41,10 @@ OakDCamera::OakDCamera()
 
   // Publisher
   _pub_image = create_publisher<sensor_msgs::msg::Image>(
-    "image", rclcpp::QoS(2).reliable().durability_volatile()
+    "oak_d_camera/image_raw", rclcpp::QoS(2).reliable().durability_volatile()
   );
   _pub_camera_info = create_publisher<sensor_msgs::msg::CameraInfo>(
-    "camera_info", rclcpp::QoS(2).reliable().transient_local()
+    "oak_d_camera/camera_info", rclcpp::QoS(2).reliable().transient_local()
   );
   publishCameraInfo(_camera_device, _parameter);
 
@@ -73,7 +74,7 @@ void OakDCamera::callbackProcessingCamera()
   std_msgs::msg::Header header;
   header.frame_id = getFrameIdPrefix() + _parameter.frame_id;
   header.stamp = get_clock()->now();
-  const auto msg = cv_bridge::CvImage(header, "mono8", cv_image).toImageMsg();
+  const auto msg = cv_bridge::CvImage(header, "mono8", cv::Mat() /*cv_image*/).toImageMsg();
   _pub_image->publish(*msg);
 }
 
@@ -83,13 +84,13 @@ void OakDCamera::setupCameraPipeline(const Parameter parameter)
   _camera_pipeline = std::make_shared<dai::Pipeline>();
 
   // Define Camera Node
-  _camera = _camera_pipeline->create<dai::node::ColorCamera>();
+  _camera = _camera_pipeline->create<dai::node::Camera>();
   _camera->setVideoSize(parameter.width, parameter.height);
   _camera->setFps(parameter.fps);
   _camera->setBoardSocket(dai::CameraBoardSocket::CENTER);
   _camera->initialControl.setAutoFocusMode(dai::CameraControl::AutoFocusMode::AUTO);
   _camera->initialControl.setAutoExposureEnable();
-  _camera->initialControl.setSceneMode(dai::CameraControl::SceneMode::BARCODE);
+  // _camera->initialControl.setSceneMode(dai::CameraControl::SceneMode::);
 
   // Define Camera Output
   _camera_output = _camera_pipeline->create<dai::node::XLinkOut>();
@@ -129,8 +130,8 @@ void OakDCamera::publishCameraInfo(std::shared_ptr<dai::Device> camera_device, c
   camera_info.height = parameter.height;
   camera_info.width = parameter.width;
 
-  camera_info.distortion_model = "plumb_bob";
-  camera_info.d.resize(5);
+  camera_info.distortion_model = "none";
+  camera_info.d.resize(distortion.size());
 
   for (std::size_t i = 0; i < camera_info.d.size(); ++i) {
     camera_info.d[i] = distortion[i];
