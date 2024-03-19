@@ -74,7 +74,7 @@ void OakDCamera::callbackProcessingCamera()
   std_msgs::msg::Header header;
   header.frame_id = getFrameIdPrefix() + _parameter.frame_id;
   header.stamp = get_clock()->now();
-  const auto msg = cv_bridge::CvImage(header, "mono8", cv::Mat() /*cv_image*/).toImageMsg();
+  const auto msg = cv_bridge::CvImage(header, "mono8", cv_image).toImageMsg();
   _pub_image->publish(*msg);
 }
 

@@ -1,4 +1,4 @@
-image_name = eduart-perception:0.2.0
+image_name = eduart-perception:0.3.0
 
 install-udev-rule:
 	sudo cp 80-movidius.rules /etc/udev/rules.d/

@@ -41,21 +41,11 @@ def generate_launch_description():
     output='screen'
   )
 
-  tf_publisher_aruco_marker = Node(
-    package='tf2_ros',
-    executable='static_transform_publisher',
-    arguments=[
-      '0', '0', '0', '0', '0', '0',
-      PathJoinSubstitution([robot_namespace, 'base_link']),
-      PathJoinSubstitution([robot_namespace, 'acuro_marker', 'pose'])
-    ]
-  )
-
   tf_publisher_cam_front = Node(
     package='tf2_ros',
     executable='static_transform_publisher',
     arguments=[
-      '0', '0', '0', '0', '0', '0',
+      '0.145', '0', '0.07', '0', '0', '0',
       PathJoinSubstitution([robot_namespace, 'base_link']),
       PathJoinSubstitution([robot_namespace, 'oak_d'])
     ]
@@ -64,6 +54,5 @@ def generate_launch_description():
   return LaunchDescription([
     oak_camera_node,
     aruco_marker_detection_node,
-    tf_publisher_cam_front,
-    tf_publisher_aruco_marker
+    tf_publisher_cam_front
   ])
