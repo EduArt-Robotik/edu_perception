@@ -13,6 +13,8 @@ RUN apt-get update \
     && apt-get install -y \
     ros-$ROS_DISTRO-geometry-msgs \
     ros-$ROS_DISTRO-cv-bridge \
+    ros-$ROS_DISTRO-aruco-opencv \
+    ros-$ROS_DISTRO-aruco-opencv-msgs \
     libzbar-dev \
     libusb-1.0-0-dev \
     && apt-get clean
