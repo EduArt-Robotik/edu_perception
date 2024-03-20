@@ -16,7 +16,7 @@ def generate_launch_description():
   parameter_file = PathJoinSubstitution([
     package_path,
     'parameter',
-    'aruco_marker_pose_estimation.yaml'
+    'eduard_red_aruco_marker_pose_estimation.yaml'
   ])
   robot_namespace = EnvironmentVariable('EDU_ROBOT_NAMESPACE', default_value="eduard")
 
