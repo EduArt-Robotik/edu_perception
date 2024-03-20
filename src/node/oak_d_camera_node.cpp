@@ -72,6 +72,11 @@ void OakDCamera::callbackProcessingCamera()
   cv::Mat cv_image = _video_decoder(packet->getData().data(), packet->getData().size());
   // cv::Mat cv_image(image->getHeight(), image->getWidth(), CV_8UC1, image->getData().data());
 
+  if (cv_image.empty()) {
+    // do not publish empty image
+    return;
+  }
+
   // Publishing Image
   std_msgs::msg::Header header;
   header.frame_id = getFrameIdPrefix() + _parameter.frame_id;

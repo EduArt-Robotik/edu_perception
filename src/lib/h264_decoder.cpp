@@ -95,7 +95,7 @@ cv::Mat H264Decoder::decode(unsigned char* input_buffer, std::size_t size)
   );
 
   return cv::Mat(
-    _frame_converted->height, _frame_converted->width, CV_8UC1,
+    _codec_context->height, _codec_context->width, CV_8UC1,
     _frame_converted->data[0], _frame_converted->linesize[0]
   );
 }

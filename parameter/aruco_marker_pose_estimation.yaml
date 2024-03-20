@@ -1,5 +1,15 @@
 /**:
   ros__parameters:
+    use_sim_time: false
+
+  # CAM
+    device: 192.168.0.111
+    fps: 20.0
+    frame_id: oak_d
+    width: 1920
+    height: 1080
+
+  # Aruco
     cam_base_topic: oak_d_camera/image_raw
     output_frame: 'eduard/oak_d'
 

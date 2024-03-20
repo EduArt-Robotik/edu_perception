@@ -43,7 +43,7 @@ public:
     float fps = 10.0f;
     std::size_t width = 1920;
     std::size_t height = 1080;
-    std::string device = "192.168.3.110";
+    std::string device = "192.168.0.111";
     std::string frame_id = "oak_d";
 
     inline bool isEthernet() const {
