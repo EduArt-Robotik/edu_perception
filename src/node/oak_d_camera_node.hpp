@@ -5,6 +5,8 @@
  */
 #pragma once
 
+#include "edu_perception/h264_decoder.hpp"
+
 #include <rclcpp/node.hpp>
 #include <rclcpp/publisher.hpp>
 
@@ -23,6 +25,7 @@ namespace node {
 class Camera;
 class ColorCamera;
 class XLinkOut;
+class VideoEncoder;
 } // end namespace node
 } // end namespace dai
 
@@ -64,6 +67,7 @@ private:
   const Parameter _parameter;
 
   std::shared_ptr<dai::node::Camera> _camera;
+  std::shared_ptr<dai::node::VideoEncoder> _video_encoder;
   std::shared_ptr<dai::node::XLinkOut> _camera_output;
   std::shared_ptr<dai::DataOutputQueue> _camera_output_queue;
   std::shared_ptr<dai::Pipeline> _camera_pipeline;
@@ -72,6 +76,8 @@ private:
   std::shared_ptr<rclcpp::TimerBase> _timer_processing_camera;
   std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::Image>> _pub_image;
   std::shared_ptr<rclcpp::Publisher<sensor_msgs::msg::CameraInfo>> _pub_camera_info;
+
+  H264Decoder _video_decoder;
 };
 
 } // end namespace perception

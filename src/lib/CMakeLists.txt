@@ -4,12 +4,17 @@ add_library(edu_perception
   qr_code_detector.cpp
   pose_estimation.cpp
   transform.cpp
+  h264_decoder.cpp
 )
 target_link_libraries(edu_perception
   Eigen3::Eigen
   depthai::core
   ${OpenCV_LIBS}
   zbar
+  avcodec
+  avformat
+  swscale
+  avutil
 )
 target_include_directories(edu_perception PUBLIC
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>

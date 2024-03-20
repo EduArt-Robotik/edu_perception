@@ -62,13 +62,15 @@ OakDCamera::~OakDCamera()
 void OakDCamera::callbackProcessingCamera()
 {
   // Requesting Image
-  const auto image = _camera_output_queue->get<dai::ImgFrame>();
+  const auto packet = _camera_output_queue->get<dai::ImgFrame>();
 
-  if (image == nullptr) {
+  if (packet == nullptr) {
     RCLCPP_ERROR(get_logger(), "No image received! Cancel processing camera.");
     return;
   }
-  cv::Mat cv_image(image->getHeight(), image->getWidth(), CV_8UC1, image->getData().data());
+
+  cv::Mat cv_image = _video_decoder(packet->getData().data(), packet->getData().size());
+  // cv::Mat cv_image(image->getHeight(), image->getWidth(), CV_8UC1, image->getData().data());
 
   // Publishing Image
   std_msgs::msg::Header header;
@@ -92,10 +94,15 @@ void OakDCamera::setupCameraPipeline(const Parameter parameter)
   _camera->initialControl.setAutoExposureEnable();
   // _camera->initialControl.setSceneMode(dai::CameraControl::SceneMode::);
 
+  // Define Video Encoder
+  _video_encoder = _camera_pipeline->create<dai::node::VideoEncoder>();
+  _video_encoder->setDefaultProfilePreset(parameter.fps, dai::VideoEncoderProperties::Profile::H264_MAIN);
+  _camera->video.link(_video_encoder->input);
+
   // Define Camera Output
   _camera_output = _camera_pipeline->create<dai::node::XLinkOut>();
   _camera_output->setStreamName("camera_video");
-  _camera->video.link(_camera_output->input);
+  _video_encoder->bitstream.link(_camera_output->input);
 
   // Initialize device and data queues.
   if (_parameter.isEthernet()) {

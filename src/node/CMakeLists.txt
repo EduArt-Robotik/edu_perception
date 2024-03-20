@@ -31,6 +31,7 @@ target_include_directories(oak_d_camera PUBLIC
 target_link_libraries(oak_d_camera
   depthai::core
   ${OpenCV_LIBS}
+  edu_perception
 )
 ament_target_dependencies(oak_d_camera
   "rclcpp"
