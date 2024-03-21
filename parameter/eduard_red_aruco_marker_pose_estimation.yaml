@@ -11,7 +11,7 @@
 
   # Aruco
     cam_base_topic: oak_d_camera/image_raw
-    output_frame: 'eduard/oak_d'
+    output_frame: 'eduard/red/oak_d'
 
     marker_dict: 7X7_50
 
