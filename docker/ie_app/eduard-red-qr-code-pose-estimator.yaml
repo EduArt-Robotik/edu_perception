@@ -9,7 +9,7 @@ services:
     privileged: true
     ipc: host
     pid: host
-    mem_limit: 300mb
+    mem_limit: 400mb
     command: bash -c 'ros2 launch edu_perception eduard_red_aruco_marker_pose_estimation.launch.py'
     environment:
         - EDU_ROBOT_NAMESPACE=eduard/red
