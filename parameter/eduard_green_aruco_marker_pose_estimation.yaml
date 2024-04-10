@@ -4,7 +4,7 @@
 
   # CAM
     device: 192.168.0.111
-    fps: 20.0
+    fps: 10.0
     frame_id: oak_d
     width: 1920
     height: 1080
