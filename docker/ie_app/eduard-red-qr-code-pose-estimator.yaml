@@ -2,8 +2,8 @@ version: "2.4"
 
 services:
   eduard-qr-code-pose-estimator:
-    image: eduartrobotik/eduart-perception:0.2.0
-    container_name: eduard-qr-code-pose-estimator-0.2.0
+    image: eduartrobotik/eduart-perception:0.3.0
+    container_name: eduard-qr-code-pose-estimator-0.3.0
     user: user
     restart: always
     privileged: true
