@@ -41,6 +41,7 @@ class OakDCamera : public rclcpp::Node
 public:
   struct Parameter {
     float fps = 10.0f;
+    std::uint8_t manual_focus = 150;
     std::size_t width = 1920;
     std::size_t height = 1080;
     std::string device = "192.168.0.111";

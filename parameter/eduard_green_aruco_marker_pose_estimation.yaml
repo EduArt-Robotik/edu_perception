@@ -5,6 +5,7 @@
   # CAM
     device: 192.168.0.111
     fps: 10.0
+    manual_focus: 150
     frame_id: oak_d
     width: 1920
     height: 1080
@@ -21,7 +22,7 @@
       depth: 1
 
     publish_tf: true
-    marker_size: 0.06
+    marker_size: 0.05
 
     # Dynamically reconfigurable Detector parameters
     # https://docs.opencv.org/4.2.0/d5/dae/tutorial_aruco_detection.html
@@ -46,4 +47,3 @@
       cornerRefinementWinSize: 5
       cornerRefinementMaxIterations: 30
       cornerRefinementMinAccuracy: 0.1
-      

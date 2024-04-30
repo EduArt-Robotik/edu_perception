@@ -19,12 +19,14 @@ OakDCamera::Parameter OakDCamera::get_parameter(rclcpp::Node& ros_node, const Pa
   Parameter parameter;
 
   ros_node.declare_parameter<float>("fps", default_parameter.fps);
+  ros_node.declare_parameter<std::uint8_t>("manual_focus", default_parameter.manual_focus);
   ros_node.declare_parameter<int>("width", default_parameter.width);
   ros_node.declare_parameter<int>("height", default_parameter.height);
   ros_node.declare_parameter<std::string>("device", default_parameter.device);
   ros_node.declare_parameter<std::string>("frame_id", default_parameter.frame_id);
 
   parameter.fps = ros_node.get_parameter("fps").as_double();
+  parameter.manual_focus = ros_node.get_parameter("manual_focus").as_int();
   parameter.width = ros_node.get_parameter("width").as_int();
   parameter.height = ros_node.get_parameter("height").as_int();
   parameter.device = ros_node.get_parameter("device").as_string();
@@ -95,9 +97,9 @@ void OakDCamera::setupCameraPipeline(const Parameter parameter)
   _camera->setVideoSize(parameter.width, parameter.height);
   _camera->setFps(parameter.fps);
   _camera->setBoardSocket(dai::CameraBoardSocket::CENTER);
-  _camera->initialControl.setAutoFocusMode(dai::CameraControl::AutoFocusMode::AUTO);
+  _camera->initialControl.setAutoFocusMode(dai::CameraControl::AutoFocusMode::OFF);
+  _camera->initialControl.setManualFocus(_parameter.manual_focus);
   _camera->initialControl.setAutoExposureEnable();
-  // _camera->initialControl.setSceneMode(dai::CameraControl::SceneMode::);
 
   // Define Video Encoder
   _video_encoder = _camera_pipeline->create<dai::node::VideoEncoder>();
