@@ -33,7 +33,9 @@ install(
   DESTINATION share/${PROJECT_NAME}
 )
 install(
-  TARGETS qr_detection_and_pose_estimation
+  TARGETS
+    qr_detection_and_pose_estimation
+    oak_d_camera
   EXPORT export_${PROJECT_NAME}
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
