@@ -2,21 +2,20 @@ version: "2.4"
 
 services:
   eduard-qr-code-pose-estimator:
-    image: eduartrobotik/eduart-perception:0.2.0
-    container_name: eduard-qr-code-pose-estimator-0.2.0
+    image: eduartrobotik/eduart-perception:0.3.0
+    container_name: eduard-qr-code-pose-estimator-0.3.0
     user: user
     restart: always
     privileged: true
     ipc: host
     pid: host
-    mem_limit: 300mb
-    command: bash -c 'ros2 launch edu_perception eduard_green_qr_pose_estimation.launch.py'
+    mem_limit: 400mb
+    command: bash -c 'ros2 launch edu_perception eduard_green_aruco_marker_pose_estimation.launch.py'
     environment:
         - EDU_ROBOT_NAMESPACE=eduard/green
     networks:
         - proxy-redirect
         - zzz_layer2_net1
-        # - zzz_layer2_net2
 
 networks:
     proxy-redirect:
