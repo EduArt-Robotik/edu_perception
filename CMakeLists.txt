@@ -20,6 +20,8 @@ find_package(cv_bridge REQUIRED)
 find_package(OpenCV REQUIRED)
 find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(tf2_ros REQUIRED)
+find_package(apriltag_msgs REQUIRED)
+find_package(message_filters REQUIRED)
 
 # Building Subdirectories
 add_subdirectory(src/lib)
@@ -36,6 +38,7 @@ install(
   TARGETS
     qr_detection_and_pose_estimation
     oak_d_camera
+    apriltag_draw
   EXPORT export_${PROJECT_NAME}
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}

@@ -38,3 +38,22 @@ ament_target_dependencies(oak_d_camera
   "sensor_msgs"
   "cv_bridge"
 )
+
+### Apriltag Draw Node
+add_executable(apriltag_draw
+  apriltag_draw_node.cpp
+)
+target_include_directories(apriltag_draw PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(apriltag_draw
+  ${OpenCV_LIBS}
+)
+ament_target_dependencies(apriltag_draw
+  "rclcpp"
+  "sensor_msgs"
+  "cv_bridge"
+  "apriltag_msgs"
+  "message_filters"
+)
