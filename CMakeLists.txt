@@ -39,6 +39,7 @@ install(
     qr_detection_and_pose_estimation
     oak_d_camera
     apriltag_draw
+    apriltag_pose_estimation
   EXPORT export_${PROJECT_NAME}
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
