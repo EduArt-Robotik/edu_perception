@@ -60,6 +60,11 @@ AprilTagPoseEstimation::AprilTagPoseEstimation()
     _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[1] = cv::Vec3f( marker_size / 2.0f,  marker_size / 2.0f, 0.0f);
     _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[2] = cv::Vec3f( marker_size / 2.0f, -marker_size / 2.0f, 0.0f);
     _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[3] = cv::Vec3f(-marker_size / 2.0f, -marker_size / 2.0f, 0.0f);
+
+    // _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[0] = cv::Vec3f(0.0f, -marker_size / 2.0f,  marker_size / 2.0f);
+    // _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[1] = cv::Vec3f(0.0f, -marker_size / 2.0f, -marker_size / 2.0f);
+    // _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[2] = cv::Vec3f(0.0f,  marker_size / 2.0f, -marker_size / 2.0f);
+    // _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[3] = cv::Vec3f(0.0f,  marker_size / 2.0f,  marker_size / 2.0f);
   }
 
   // bring up ROS communication
@@ -114,13 +119,13 @@ void AprilTagPoseEstimation::callbackDetection(std::shared_ptr<const apriltag_ms
         cv::Point2d(detection.corners[3].x, detection.corners[3].y)
       };
 
-      std::cout << "marker id = " << static_cast<int>(marker_id) << std::endl;
-      std::cout << "object points:\n" << object_points << std::endl;
-      std::cout << "marker corners:\n";
-      for (const auto& point : marker_corners) std::cout << point << ", ";
-      std::cout << std::endl;
-      std::cout << "camera matrix:\n" << _camera_matrix << std::endl;
-      std::cout << "distortion:\n" << _distortion_coefficient << std::endl;
+      // std::cout << "marker id = " << static_cast<int>(marker_id) << std::endl;
+      // std::cout << "object points:\n" << object_points << std::endl;
+      // std::cout << "marker corners:\n";
+      // for (const auto& point : marker_corners) std::cout << point << ", ";
+      // std::cout << std::endl;
+      // std::cout << "camera matrix:\n" << _camera_matrix << std::endl;
+      // std::cout << "distortion:\n" << _distortion_coefficient << std::endl;
 
       cv::Vec3d rotation, translation;
       cv::solvePnP(
@@ -130,8 +135,9 @@ void AprilTagPoseEstimation::callbackDetection(std::shared_ptr<const apriltag_ms
 
       // publishing result
       // header
-      // \todo frame id seems to be wrong here. Clarify which frame id should be used here...
+      // apriltag was seen by the camera --> frame id of camera
       pose.header.frame_id = _camera_info->header.frame_id;
+      // apriltag was detected at message time --> stamp from message
       pose.header.stamp = msg->header.stamp;
 
       // position

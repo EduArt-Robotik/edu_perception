@@ -54,6 +54,7 @@ void AprilTagDraw::callbackSynchedDetection(
     cv_bridge::CvImagePtr cv_image = cv_bridge::toCvCopy(image, image->encoding);
 
     for (const auto& detection : detection->detections) {
+      // drawing lines
       cv::line(
         cv_image->image,
         cv::Point(detection.corners[0].x, detection.corners[0].y),
@@ -77,6 +78,32 @@ void AprilTagDraw::callbackSynchedDetection(
         cv::Point(detection.corners[3].x, detection.corners[3].y),
         cv::Point(detection.corners[0].x, detection.corners[0].y),
         cv::Scalar(0, 255, 0)
+      );
+
+      // drawing corner points
+      cv::circle(
+        cv_image->image,
+        cv::Point(detection.corners[0].x, detection.corners[0].y),
+        3,
+        cv::Scalar(255, 0, 0)
+      );
+      cv::circle(
+        cv_image->image,
+        cv::Point(detection.corners[1].x, detection.corners[1].y),
+        3,
+        cv::Scalar(0, 255, 0)
+      );
+      cv::circle(
+        cv_image->image,
+        cv::Point(detection.corners[2].x, detection.corners[2].y),
+        3,
+        cv::Scalar(0, 0, 255)
+      );
+      cv::circle(
+        cv_image->image,
+        cv::Point(detection.corners[3].x, detection.corners[3].y),
+        3,
+        cv::Scalar(0, 0, 0)
       );                  
     }
 
