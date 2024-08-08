@@ -150,6 +150,7 @@ void AprilTagPoseEstimation::callbackDetection(std::shared_ptr<const apriltag_ms
       pose.pose.pose.orientation.y = rotation_q.y();
       pose.pose.pose.orientation.z = rotation_q.z();
 
+      transformIntoWorld(pose);
       _pub_pose->publish(pose);
     }
     catch (std::exception& ex) {
@@ -170,6 +171,25 @@ void AprilTagPoseEstimation::callbackCameraInfo(std::shared_ptr<const sensor_msg
   for (std::size_t i = 0; i < 9; ++i) {
     _camera_matrix.at<double>(i / 3, i % 3) = _camera_info->k[i];
   }
+}
+
+void AprilTagPoseEstimation::transformIntoWorld(geometry_msgs::msg::PoseWithCovarianceStamped& pose)
+{
+  const Eigen::Quaterniond q(
+    pose.pose.pose.orientation.w, pose.pose.pose.orientation.x, pose.pose.pose.orientation.y, pose.pose.pose.orientation.z);
+  const Eigen::Vector3d p_r(pose.pose.pose.position.x, pose.pose.pose.position.y, pose.pose.pose.position.z);
+  const Eigen::Quaterniond q_inv = q.inverse();
+
+  const Eigen::Vector3d p_w = q_inv * (p_r * -1.0);
+
+  pose.pose.pose.position.x = p_w.x();
+  pose.pose.pose.position.y = p_w.y();
+  pose.pose.pose.position.z = p_w.z();
+
+  pose.pose.pose.orientation.w = q_inv.w();
+  pose.pose.pose.orientation.x = q_inv.x();
+  pose.pose.pose.orientation.y = q_inv.y();
+  pose.pose.pose.orientation.z = q_inv.z();      
 }
 
 } // end namespace perception

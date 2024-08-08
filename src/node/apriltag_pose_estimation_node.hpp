@@ -5,6 +5,7 @@
  */
 #pragma once
 
+#include <geometry_msgs/msg/detail/pose_with_covariance_stamped__struct.hpp>
 #include <rclcpp/node.hpp>
 #include <rclcpp/publisher.hpp>
 #include <rclcpp/subscription.hpp>
@@ -40,6 +41,7 @@ public:
 private:
   void callbackDetection(std::shared_ptr<const apriltag_msgs::msg::AprilTagDetectionArray> msg);
   void callbackCameraInfo(std::shared_ptr<const sensor_msgs::msg::CameraInfo> msg);
+  void transformIntoWorld(geometry_msgs::msg::PoseWithCovarianceStamped& pose);
 
   const Parameter _parameter;
   std::shared_ptr<const sensor_msgs::msg::CameraInfo> _camera_info;
