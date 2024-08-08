@@ -60,11 +60,6 @@ AprilTagPoseEstimation::AprilTagPoseEstimation()
     _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[1] = cv::Vec3f( marker_size / 2.0f,  marker_size / 2.0f, 0.0f);
     _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[2] = cv::Vec3f( marker_size / 2.0f, -marker_size / 2.0f, 0.0f);
     _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[3] = cv::Vec3f(-marker_size / 2.0f, -marker_size / 2.0f, 0.0f);
-
-    // _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[0] = cv::Vec3f(0.0f, -marker_size / 2.0f,  marker_size / 2.0f);
-    // _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[1] = cv::Vec3f(0.0f, -marker_size / 2.0f, -marker_size / 2.0f);
-    // _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[2] = cv::Vec3f(0.0f,  marker_size / 2.0f, -marker_size / 2.0f);
-    // _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[3] = cv::Vec3f(0.0f,  marker_size / 2.0f,  marker_size / 2.0f);
   }
 
   // bring up ROS communication

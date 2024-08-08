@@ -28,7 +28,7 @@ public:
     std::map<std::size_t, float> marker_size;
     struct {
       float position = 0.2;
-      float orientation = 10.0f * M_PI / 180.0f; // 10°
+      float orientation = 45.0f * M_PI / 180.0f; // 10°
     } std_dev;
   };
 
