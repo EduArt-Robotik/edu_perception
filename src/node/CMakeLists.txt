@@ -74,4 +74,6 @@ ament_target_dependencies(apriltag_pose_estimation
   "rclcpp"
   "sensor_msgs"
   "apriltag_msgs"
+  "tf2_ros"
+  "tf2_geometry_msgs"
 )

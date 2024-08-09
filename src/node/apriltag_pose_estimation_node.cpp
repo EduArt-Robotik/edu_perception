@@ -2,11 +2,14 @@
 
 #include <opencv2/calib3d.hpp>
 
+#include <tf2/convert.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
-#include <opencv2/core/matx.hpp>
-#include <opencv2/core/types.hpp>
 #include <rclcpp/executors.hpp>
 #include <rclcpp/logging.hpp>
 #include <rclcpp/qos.hpp>
@@ -14,9 +17,21 @@
 #include <cstddef>
 #include <functional>
 #include <stdexcept>
+#include <string>
+#include <memory>
+#include <cmath>
 
 namespace eduart {
 namespace perception {
+
+static double quaternion_to_yaw(const geometry_msgs::msg::Quaternion& q) {
+  const Eigen::Vector3d e_x = Eigen::Vector3d::UnitX();
+  const Eigen::Quaterniond R(q.w, q.x, q.y, q.z);
+  Eigen::Vector3d v = R * e_x;
+  v.y() = 0.0;
+
+  return e_x.dot(v);
+}
 
 AprilTagPoseEstimation::Parameter AprilTagPoseEstimation::get_parameter(
   rclcpp::Node& ros_node, const Parameter& default_parameter)
@@ -49,6 +64,8 @@ AprilTagPoseEstimation::AprilTagPoseEstimation()
   : rclcpp::Node("apriltag_pose_estimation")
   , _parameter(get_parameter(*this, _parameter))
   , _camera_matrix(3, 3, CV_64FC1, cv::Scalar(0.0))
+  , _tf_buffer(std::make_unique<tf2_ros::Buffer>(get_clock()))
+  , _tf_listener(std::make_unique<tf2_ros::TransformListener>(*_tf_buffer))
 {
   // calculate required marker object data
   for (const auto& marker_size_entry : _parameter.marker_size) {
@@ -136,21 +153,26 @@ void AprilTagPoseEstimation::callbackDetection(std::shared_ptr<const apriltag_ms
       pose.header.stamp = msg->header.stamp;
 
       // position
-      pose.pose.pose.position.x = translation[0];
-      pose.pose.pose.position.y = translation[1];
-      pose.pose.pose.position.z = translation[2];
+      // switch axis to transform into robot coordinate system (x in front)
+      pose.pose.pose.position.x =  translation[2];
+      pose.pose.pose.position.y = -translation[0];
+      pose.pose.pose.position.z =  translation[1];
 
       // orientation
+      // switch axis to transform into robot coordinate system (x in front)
       Eigen::Quaterniond rotation_q = 
-        Eigen::AngleAxisd(rotation[0], Eigen::Vector3d::UnitX()) *
-        Eigen::AngleAxisd(rotation[1], Eigen::Vector3d::UnitY()) *
-        Eigen::AngleAxisd(rotation[2], Eigen::Vector3d::UnitZ());
+        Eigen::AngleAxisd( rotation[2], Eigen::Vector3d::UnitX()) *
+        Eigen::AngleAxisd(-rotation[0], Eigen::Vector3d::UnitY()) *
+        Eigen::AngleAxisd( rotation[1], Eigen::Vector3d::UnitZ());
       pose.pose.pose.orientation.w = rotation_q.w();
       pose.pose.pose.orientation.x = rotation_q.x();
       pose.pose.pose.orientation.y = rotation_q.y();
       pose.pose.pose.orientation.z = rotation_q.z();
 
-      transformIntoWorld(pose);
+      if (_parameter.transform_into_world) {
+        transformIntoWorld(pose, marker_id);
+      }
+      pose.header.frame_id = _camera_info->header.frame_id; 
       _pub_pose->publish(pose);
     }
     catch (std::exception& ex) {
@@ -173,23 +195,50 @@ void AprilTagPoseEstimation::callbackCameraInfo(std::shared_ptr<const sensor_msg
   }
 }
 
-void AprilTagPoseEstimation::transformIntoWorld(geometry_msgs::msg::PoseWithCovarianceStamped& pose)
+void AprilTagPoseEstimation::transformIntoWorld(
+  geometry_msgs::msg::PoseWithCovarianceStamped& pose, const std::size_t marker_id)
 {
+  try {
+    // add transformation to world to the pose
+    const auto transform = _tf_buffer->lookupTransform(
+      _parameter.world_frame_id,
+      _parameter.maker_frame_id_prefix + std::to_string(marker_id),
+      pose.header.stamp
+    );
+    tf2::doTransform(pose, pose, transform);
+  }
+  catch (std::exception& ex) {
+    RCLCPP_ERROR(get_logger(), "exception thrown during transform coordinates into world. what = %s", ex.what());
+  }
+  // const Eigen::Quaterniond q_180 =
+  //   Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitX()) *
+  //   Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitY()) *
+  //   Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ());
+  // const Eigen::Quaterniond q_180(0.0, 0.0, 0.0, 1.0);
+  const Eigen::Quaterniond q_180 =
+    Eigen::AngleAxisd( 0.0, Eigen::Vector3d::UnitX()) *
+    Eigen::AngleAxisd( 0.0, Eigen::Vector3d::UnitY()) *
+    Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ());
   const Eigen::Quaterniond q(
     pose.pose.pose.orientation.w, pose.pose.pose.orientation.x, pose.pose.pose.orientation.y, pose.pose.pose.orientation.z);
   const Eigen::Vector3d p_r(pose.pose.pose.position.x, pose.pose.pose.position.y, pose.pose.pose.position.z);
-  const Eigen::Quaterniond q_inv = q.inverse();
+  // const Eigen::Quaterniond q_inv = q_180 * q;
+  const Eigen::Quaterniond q_w = q_180 * q;
 
-  const Eigen::Vector3d p_w = q_inv * (p_r * -1.0);
+  const Eigen::Vector3d p_w = q * p_r;
+
+  // std::cout << "yaw(q) = " << quaternion_to_yaw(pose.pose.pose.orientation) << std::endl;
 
   pose.pose.pose.position.x = p_w.x();
   pose.pose.pose.position.y = p_w.y();
   pose.pose.pose.position.z = p_w.z();
 
-  pose.pose.pose.orientation.w = q_inv.w();
-  pose.pose.pose.orientation.x = q_inv.x();
-  pose.pose.pose.orientation.y = q_inv.y();
-  pose.pose.pose.orientation.z = q_inv.z();      
+  pose.pose.pose.orientation.w = q_w.w();
+  pose.pose.pose.orientation.x = q_w.x();
+  pose.pose.pose.orientation.y = q_w.y();
+  pose.pose.pose.orientation.z = q_w.z();
+
+  // std::cout << "yaw(q_inv) = " << quaternion_to_yaw(pose.pose.pose.orientation) << std::endl;
 }
 
 } // end namespace perception
