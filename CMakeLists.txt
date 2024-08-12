@@ -13,6 +13,7 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(ament_cmake_gtest REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -27,6 +28,7 @@ find_package(message_filters REQUIRED)
 # Building Subdirectories
 add_subdirectory(src/lib)
 add_subdirectory(src/node)
+add_subdirectory(src/test)
 
 ## Installing of Content
 install(

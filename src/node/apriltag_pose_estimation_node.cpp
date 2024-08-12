@@ -198,6 +198,42 @@ void AprilTagPoseEstimation::callbackCameraInfo(std::shared_ptr<const sensor_msg
 void AprilTagPoseEstimation::transformIntoWorld(
   geometry_msgs::msg::PoseWithCovarianceStamped& pose, const std::size_t marker_id)
 {
+  const Eigen::Quaterniond q(
+    pose.pose.pose.orientation.w, pose.pose.pose.orientation.x, pose.pose.pose.orientation.y, pose.pose.pose.orientation.z);
+  const Eigen::Vector3d p_r(pose.pose.pose.position.x, pose.pose.pose.position.y, pose.pose.pose.position.z);
+  // const Eigen::Quaterniond q_inv = q_180 * q;
+  const Eigen::Quaterniond q_w = q;
+
+  const Eigen::Vector3d p_w = q * (p_r * -1.0);
+
+  pose.pose.pose.position.x = p_w.x();
+  pose.pose.pose.position.y = p_w.y();
+  pose.pose.pose.position.z = p_w.z();
+
+  pose.pose.pose.orientation.w = q.w();
+  pose.pose.pose.orientation.x = q.x();
+  pose.pose.pose.orientation.y = q.y();
+  pose.pose.pose.orientation.z = q.z();
+
+  // Eigen::Matrix4d P = Eigen::Matrix4d::Identity();
+  // P.block<3, 3>(0, 0) = q.inverse().toRotationMatrix();
+  // P(0, 3) = p_r.x();
+  // P(1, 3) = p_r.y();
+  // P(2, 3) = p_r.z();
+  // P = P.inverse().eval();
+
+  // pose.pose.pose.position.x = P(0, 3);//p_w.x();
+  // pose.pose.pose.position.y = P(1, 3);//p_w.y();
+  // pose.pose.pose.position.z = P(2, 3);//p_w.z();
+
+  // const Eigen::Quaterniond q_out(P.block<3, 3>(0, 0));
+
+  // pose.pose.pose.orientation.w = q_out.w();
+  // pose.pose.pose.orientation.x = q_out.x();
+  // pose.pose.pose.orientation.y = q_out.y();
+  // pose.pose.pose.orientation.z = q_out.z();
+
+  // transform from marker frame into world frame
   try {
     // add transformation to world to the pose
     const auto transform = _tf_buffer->lookupTransform(
@@ -210,34 +246,6 @@ void AprilTagPoseEstimation::transformIntoWorld(
   catch (std::exception& ex) {
     RCLCPP_ERROR(get_logger(), "exception thrown during transform coordinates into world. what = %s", ex.what());
   }
-  // const Eigen::Quaterniond q_180 =
-  //   Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitX()) *
-  //   Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitY()) *
-  //   Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ());
-  // const Eigen::Quaterniond q_180(0.0, 0.0, 0.0, 1.0);
-  const Eigen::Quaterniond q_180 =
-    Eigen::AngleAxisd( 0.0, Eigen::Vector3d::UnitX()) *
-    Eigen::AngleAxisd( 0.0, Eigen::Vector3d::UnitY()) *
-    Eigen::AngleAxisd(M_PI, Eigen::Vector3d::UnitZ());
-  const Eigen::Quaterniond q(
-    pose.pose.pose.orientation.w, pose.pose.pose.orientation.x, pose.pose.pose.orientation.y, pose.pose.pose.orientation.z);
-  const Eigen::Vector3d p_r(pose.pose.pose.position.x, pose.pose.pose.position.y, pose.pose.pose.position.z);
-  // const Eigen::Quaterniond q_inv = q_180 * q;
-  const Eigen::Quaterniond q_w = q_180 * q;
-
-  const Eigen::Vector3d p_w = q * p_r;
-
-  // std::cout << "yaw(q) = " << quaternion_to_yaw(pose.pose.pose.orientation) << std::endl;
-
-  pose.pose.pose.position.x = p_w.x();
-  pose.pose.pose.position.y = p_w.y();
-  pose.pose.pose.position.z = p_w.z();
-
-  pose.pose.pose.orientation.w = q_w.w();
-  pose.pose.pose.orientation.x = q_w.x();
-  pose.pose.pose.orientation.y = q_w.y();
-  pose.pose.pose.orientation.z = q_w.z();
-
   // std::cout << "yaw(q_inv) = " << quaternion_to_yaw(pose.pose.pose.orientation) << std::endl;
 }
 
