@@ -201,9 +201,12 @@ void AprilTagPoseEstimation::transformIntoWorld(
   const Eigen::Quaterniond q(
     pose.pose.pose.orientation.w, pose.pose.pose.orientation.x, pose.pose.pose.orientation.y, pose.pose.pose.orientation.z);
   const Eigen::Vector3d p_r(pose.pose.pose.position.x, pose.pose.pose.position.y, pose.pose.pose.position.z);
-  // const Eigen::Quaterniond q_inv = q_180 * q;
-  const Eigen::Quaterniond q_w = q;
 
+  // transform into marker coordinates by inverting pose
+  // note: actually a q.inverse() was expected to meet following equation:
+  //       T^-1 = (T * R)^-1 = R^-1 * T^-1
+  //       but somehow the orientation is already inverted. Maybe because of the marker's orientation is already inverted
+  //       by the constructed maker corner points (3D).
   const Eigen::Vector3d p_w = q * (p_r * -1.0);
 
   pose.pose.pose.position.x = p_w.x();
@@ -215,23 +218,6 @@ void AprilTagPoseEstimation::transformIntoWorld(
   pose.pose.pose.orientation.y = q.y();
   pose.pose.pose.orientation.z = q.z();
 
-  // Eigen::Matrix4d P = Eigen::Matrix4d::Identity();
-  // P.block<3, 3>(0, 0) = q.inverse().toRotationMatrix();
-  // P(0, 3) = p_r.x();
-  // P(1, 3) = p_r.y();
-  // P(2, 3) = p_r.z();
-  // P = P.inverse().eval();
-
-  // pose.pose.pose.position.x = P(0, 3);//p_w.x();
-  // pose.pose.pose.position.y = P(1, 3);//p_w.y();
-  // pose.pose.pose.position.z = P(2, 3);//p_w.z();
-
-  // const Eigen::Quaterniond q_out(P.block<3, 3>(0, 0));
-
-  // pose.pose.pose.orientation.w = q_out.w();
-  // pose.pose.pose.orientation.x = q_out.x();
-  // pose.pose.pose.orientation.y = q_out.y();
-  // pose.pose.pose.orientation.z = q_out.z();
 
   // transform from marker frame into world frame
   try {
@@ -246,7 +232,6 @@ void AprilTagPoseEstimation::transformIntoWorld(
   catch (std::exception& ex) {
     RCLCPP_ERROR(get_logger(), "exception thrown during transform coordinates into world. what = %s", ex.what());
   }
-  // std::cout << "yaw(q_inv) = " << quaternion_to_yaw(pose.pose.pose.orientation) << std::endl;
 }
 
 } // end namespace perception
