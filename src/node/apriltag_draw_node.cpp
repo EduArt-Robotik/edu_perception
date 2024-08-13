@@ -50,6 +50,11 @@ void AprilTagDraw::callbackSynchedDetection(
     std::shared_ptr<const sensor_msgs::msg::Image> image,
     std::shared_ptr<const apriltag_msgs::msg::AprilTagDetectionArray> detection)
 {
+  // if no subscription exists than do nothing to safe resources
+  if (_pub_image->get_subscription_count() == 0) {
+    return;
+  }
+
   try {
     cv_bridge::CvImagePtr cv_image = cv_bridge::toCvCopy(image, image->encoding);
 

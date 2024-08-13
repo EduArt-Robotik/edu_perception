@@ -30,7 +30,7 @@ public:
   struct Parameter {
     std::map<std::size_t, float> marker_size;
     struct {
-      float position = 0.2;
+      float position = 0.5;
       float orientation = 45.0f * M_PI / 180.0f; // 45°
     } std_dev;
 
