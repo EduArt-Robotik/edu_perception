@@ -5,7 +5,7 @@
 #include <rclcpp/executors.hpp>
 #include <rclcpp/qos.hpp>
 
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 
 #include <functional>
 
