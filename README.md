@@ -6,6 +6,13 @@ ROS2 software for perception applications.
 ```bash
 git submodule update --init --recursive
 ```
+# Installing dependencies
+
+```bash
+sudo apt update
+sudo apt install ros-$ROS_DISTRO-apriltag-msgs
+
+```
 
 # Deploying
 
