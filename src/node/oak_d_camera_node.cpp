@@ -1,7 +1,7 @@
 #include "oak_d_camera_node.hpp"
 #include "depthai/pipeline/node/Camera.hpp"
 
-#include <cv_bridge/cv_bridge.h>
+#include <cv_bridge/cv_bridge.hpp>
 
 #include <depthai/depthai.hpp>
 

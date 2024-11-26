@@ -1,8 +1,8 @@
-FROM eduartrobotik/eduart-swarm:0.2.0
+FROM eduartrobotik/eduart-fleet:0.3.0
 
 # using bash
 SHELL ["/bin/bash", "-c"]
-ENV ROS_DISTRO humble
+ENV ROS_DISTRO jazzy
 ENV USER user
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -15,6 +15,8 @@ RUN apt-get update \
     ros-$ROS_DISTRO-cv-bridge \
     ros-$ROS_DISTRO-aruco-opencv \
     ros-$ROS_DISTRO-aruco-opencv-msgs \
+    ros-$ROS_DISTRO-apriltag-ros \
+    ros-$ROS_DISTRO-usb-cam \
     libzbar-dev \
     libusb-1.0-0-dev \
     && apt-get clean
@@ -31,7 +33,7 @@ RUN cd /home/$USER/ros/src/edu_perception \
 # build EduArt packages nodes
 RUN source /opt/ros/$ROS_DISTRO/setup.bash \
     && source /home/$USER/.bashrc \
-    && colcon build --symlink-install --executor sequential --event-handlers console_direct+ --cmake-args -DCMAKE_BUILD_TYPE=Release
+    && colcon build --symlink-install --event-handlers console_direct+ --cmake-args -DCMAKE_BUILD_TYPE=Release
 
 # add entry point
 COPY --chown=$USER ./entrypoint /home/$USER/
