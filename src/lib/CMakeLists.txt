@@ -4,7 +4,7 @@ add_library(edu_perception
   qr_code_detector.cpp
   pose_estimation.cpp
   transform.cpp
-  h264_decoder.cpp
+  # h264_decoder.cpp
 )
 target_link_libraries(edu_perception
   Eigen3::Eigen

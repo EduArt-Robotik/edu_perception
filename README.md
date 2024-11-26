@@ -1,6 +1,19 @@
 # edu_perception
 ROS2 software for perception applications.
 
+# Initialize Submodule
+
+```bash
+git submodule update --init --recursive
+```
+# Installing dependencies
+
+```bash
+sudo apt update
+sudo apt install ros-$ROS_DISTRO-apriltag-msgs
+
+```
+
 # Deploying
 
 A Docker container is used to run this software on our robots. Normally, all our robots are shipped with a Docker container registered to start after a reboot. If you want to deploy a newer version, or whatever the reason, make sure to remove the previously deployed container. To check which containers are running, use the following command:
