@@ -28,7 +28,7 @@ find_package(apriltag_msgs REQUIRED)
 find_package(message_filters REQUIRED)
 
 ## Build Defined ROS Messages
-rosidl_generate_interfaces(${PROJECT_NAME}_idl
+rosidl_generate_interfaces(${PROJECT_NAME}
 # Messages
   "msg/LidarField.msg"
   "msg/LidarFieldEvaluation.msg"
@@ -36,7 +36,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}_idl
   std_msgs
 )
 # Create a target that can be used by all buildiung targets when the custom message are required for them.
-rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME}_idl "rosidl_typesupport_cpp")
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
 # Building Subdirectories
 add_subdirectory(src/lib)
@@ -56,6 +56,7 @@ install(
     # oak_d_camera
     apriltag_draw
     apriltag_pose_estimation
+    sick_lidar_custom_reader
   EXPORT export_${PROJECT_NAME}
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}

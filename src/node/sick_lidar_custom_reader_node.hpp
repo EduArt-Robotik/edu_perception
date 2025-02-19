@@ -5,6 +5,8 @@
  */
 #pragma once
 
+#include "edu_perception/msg/lidar_field_evaluation.hpp"
+
 #include <rclcpp/rclcpp.hpp>
 
 #include <regex>
@@ -32,10 +34,13 @@ public:
   static Parameter get_parameter(rclcpp::Node& ros_node, const Parameter& default_parameter);
 
 private:
+  void processReading();
+
   const Parameter _parameter;
 
+  int _socket_fd = -1;
   std::shared_ptr<rclcpp::TimerBase> _timer_process_reading;
-
+  std::shared_ptr<rclcpp::Publisher<edu_perception::msg::LidarFieldEvaluation>> _pub_field_evaluation;
 };
 
 } // end namespace perception

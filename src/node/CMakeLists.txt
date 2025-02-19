@@ -10,7 +10,7 @@
 # target_link_libraries(qr_detection_and_pose_estimation
 #   depthai::core
 #   ${OpenCV_LIBS}
-#   edu_perception
+#   eduart_perception
 # )
 # ament_target_dependencies(qr_detection_and_pose_estimation
 #   "rclcpp"
@@ -31,7 +31,7 @@
 # target_link_libraries(oak_d_camera
 #   depthai::core
 #   ${OpenCV_LIBS}
-#   edu_perception
+#   eduart_perception
 # )
 # ament_target_dependencies(oak_d_camera
 #   "rclcpp"
