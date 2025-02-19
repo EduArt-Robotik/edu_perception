@@ -1,6 +1,6 @@
 ## Build Library
 add_library(edu_perception
-  stereo_inference.cpp
+  # stereo_inference.cpp
   qr_code_detector.cpp
   pose_estimation.cpp
   transform.cpp
@@ -8,7 +8,7 @@ add_library(edu_perception
 )
 target_link_libraries(edu_perception
   Eigen3::Eigen
-  depthai::core
+  # depthai::core
   ${OpenCV_LIBS}
   zbar
   avcodec
