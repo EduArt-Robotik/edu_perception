@@ -27,7 +27,7 @@ public:
       return std::regex_match(lidar_ip_address, ipv4);
     }
     
-    std::vector<std::size_t> field_index = { 0, 2 };
+    std::vector<std::int64_t> field_index = { 0, 2 };
     std::vector<std::string> field_name = { "warnfeld", "schutzfeld" };
   };
 

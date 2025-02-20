@@ -13,7 +13,7 @@ namespace perception {
 
 using namespace std::chrono_literals;
 
-static constexpr std::array<std::uint8_t, 6> convert_field_state_to_msg = {
+static constexpr std::array<edu_perception::msg::LidarField::_state_type, 6> convert_field_state_to_msg = {
   edu_perception::msg::LidarField::NOT_CONFIGURED,
   edu_perception::msg::LidarField::INACTIVE,
   edu_perception::msg::LidarField::FREE,
@@ -59,7 +59,6 @@ static std::vector<edu_perception::msg::LidarField> deserialize(
 
     if (rx_buffer[i] - '0' >= static_cast<int>(convert_field_state_to_msg.size())) {
       // field state value is invalid
-      std::cout << "invalid field state value = " << rx_buffer[i] << std::endl;
       continue;
     }
 
@@ -68,7 +67,7 @@ static std::vector<edu_perception::msg::LidarField> deserialize(
 
   // pick only wanted fields using given field indicies
   for (std::size_t i = 0; i < parameter.field_index.size(); ++i) {
-    if (parameter.field_index[i] >= field_state.size()) {
+    if (parameter.field_index[i] >= static_cast<int>(field_state.size()) || parameter.field_index[i] < 0) {
       // index is out of range --> skip
       continue;
     }
@@ -84,7 +83,32 @@ static std::vector<edu_perception::msg::LidarField> deserialize(
 SickLidarCustomReader::Parameter SickLidarCustomReader::get_parameter(
   rclcpp::Node &ros_node, const Parameter &default_parameter)
 {
-  (void)ros_node;
+  ros_node.declare_parameter<std::string>("lidar_ip_address", default_parameter.lidar_ip_address);
+  ros_node.declare_parameter<int>("lidar_port", default_parameter.lidar_port);
+  ros_node.declare_parameter<std::vector<std::int64_t>>("field_index", default_parameter.field_index);
+  ros_node.declare_parameter<std::vector<std::string>>("field_name", default_parameter.field_name);
+
+  Parameter parameter;
+
+  // IP Address
+  parameter.lidar_ip_address = ros_node.get_parameter("lidar_ip_address").as_string();
+
+  if (parameter.isIpAddressValid() == false) {
+    RCLCPP_ERROR(
+      ros_node.get_logger(),
+      "given ip address \"%s\" is invalid. Fallback to default \"%s\".",
+      parameter.lidar_ip_address.c_str(),
+      default_parameter.lidar_ip_address.c_str()
+    );
+    parameter.lidar_ip_address = default_parameter.lidar_ip_address;
+  }
+
+  // Others
+  // \todo check if port and indices are valid
+  parameter.lidar_port  = ros_node.get_parameter("lidar_port").as_int();
+  parameter.field_index = ros_node.get_parameter("field_index").as_integer_array();
+  parameter.field_name  = ros_node.get_parameter("field_name").as_string_array();
+
   return default_parameter;
 }
 
@@ -116,7 +140,7 @@ SickLidarCustomReader::SickLidarCustomReader()
 
   // publisher
   _pub_field_evaluation = create_publisher<edu_perception::msg::LidarFieldEvaluation>(
-    "field_evaluation", rclcpp::QoS(2).reliable().transient_local()
+    "field_evaluation", rclcpp::QoS(1).reliable().transient_local()
   );
 
   // start timer
@@ -163,10 +187,7 @@ void SickLidarCustomReader::processReading()
   rx_buffer[received_bytes - 1] = 0; // terminate buffer so it is a c string
   RCLCPP_INFO(get_logger(), "read %i bytes from socket. got: %s", received_bytes, rx_buffer);
 
-  std::cout << "timestamp = " << get_timestamp(rx_buffer) << std::endl;
   const auto fields = deserialize(rx_buffer, received_bytes, _parameter);
-  std::cout << "read " << fields.size() << " fields" << std::endl;
-
   const auto stamp = get_timestamp(rx_buffer);
 
   // if timestamp has not changed than the state has also not changed
@@ -183,11 +204,6 @@ void SickLidarCustomReader::processReading()
   _stamp_last_field_state = stamp;
 
   _pub_field_evaluation->publish(msg);
-  // std::cout << "rx buffer: ";
-  // for (std::size_t i = 0; i < received_bytes; ++i) {
-  //   std::cout << std::hex << static_cast<int>(rx_buffer[i]) << ' ';
-  // }
-  // std::cout << std::dec << std::endl;
 }
 
 } // end namespace perception
