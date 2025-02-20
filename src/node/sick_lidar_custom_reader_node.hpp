@@ -26,6 +26,9 @@ public:
         "(([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])\\.){3}([0-9]|[1-9][0-9]|1[0-9][0-9]|2[0-4][0-9]|25[0-5])");
       return std::regex_match(lidar_ip_address, ipv4);
     }
+    
+    std::vector<std::size_t> field_index = { 0, 2 };
+    std::vector<std::string> field_name = { "warnfeld", "schutzfeld" };
   };
 
   SickLidarCustomReader();
@@ -39,6 +42,7 @@ private:
   const Parameter _parameter;
 
   int _socket_fd = -1;
+  std::uint32_t _stamp_last_field_state = 0;
   std::shared_ptr<rclcpp::TimerBase> _timer_process_reading;
   std::shared_ptr<rclcpp::Publisher<edu_perception::msg::LidarFieldEvaluation>> _pub_field_evaluation;
 };

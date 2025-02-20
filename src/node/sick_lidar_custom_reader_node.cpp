@@ -22,7 +22,7 @@ static constexpr std::array<std::uint8_t, 6> convert_field_state_to_msg = {
   edu_perception::msg::LidarField::DETECTING_FREE
 };
 
-static std::uint32_t get_timestamp(const std::uint8_t rx_buffer[], const std::size_t length)
+static std::uint32_t get_timestamp(const std::uint8_t rx_buffer[])
 {
   std::uint32_t timestamp;
   unsigned int version;
@@ -31,11 +31,14 @@ static std::uint32_t get_timestamp(const std::uint8_t rx_buffer[], const std::si
   return timestamp;
 }
 
-static std::vector<edu_perception::msg::LidarField> deserialize(const std::uint8_t rx_buffer[], const std::size_t length)
+static std::vector<edu_perception::msg::LidarField> deserialize(
+  const std::uint8_t rx_buffer[], const std::size_t length, const SickLidarCustomReader::Parameter& parameter)
 {
   std::vector<edu_perception::msg::LidarField> fields;
+  std::vector<edu_perception::msg::LidarField::_state_type> field_state;
   std::size_t found_spaces = 0;
-  std::cout << "detected field states: ";
+
+  // collect all field states
   for (std::size_t i = 0; i < length; ++i) {
     if (rx_buffer[i] == '\0') {
       // string end reached
@@ -54,26 +57,34 @@ static std::vector<edu_perception::msg::LidarField> deserialize(const std::uint8
     }
     //else: field data --> parse
 
-    if (rx_buffer[i] - '0' >= convert_field_state_to_msg.size()) {
+    if (rx_buffer[i] - '0' >= static_cast<int>(convert_field_state_to_msg.size())) {
       // field state value is invalid
       std::cout << "invalid field state value = " << rx_buffer[i] << std::endl;
       continue;
     }
 
-    edu_perception::msg::LidarField field;
-    field.state = convert_field_state_to_msg[rx_buffer[i] - '0'];
-    std::cout << static_cast<int>(field.state) << ' ';
-    fields.push_back(field);
+    field_state.push_back(convert_field_state_to_msg[rx_buffer[i] - '0']);
   }
 
-  std::cout << std::endl << "found " << found_spaces << "spaces" << std::endl;
+  // pick only wanted fields using given field indicies
+  for (std::size_t i = 0; i < parameter.field_index.size(); ++i) {
+    if (parameter.field_index[i] >= field_state.size()) {
+      // index is out of range --> skip
+      continue;
+    }
 
+    fields.emplace_back();
+    fields.back().name = parameter.field_name[i];
+    fields.back().state = field_state[parameter.field_index[i]];
+  }
+  
   return fields;
 }
 
 SickLidarCustomReader::Parameter SickLidarCustomReader::get_parameter(
   rclcpp::Node &ros_node, const Parameter &default_parameter)
 {
+  (void)ros_node;
   return default_parameter;
 }
 
@@ -152,14 +163,24 @@ void SickLidarCustomReader::processReading()
   rx_buffer[received_bytes - 1] = 0; // terminate buffer so it is a c string
   RCLCPP_INFO(get_logger(), "read %i bytes from socket. got: %s", received_bytes, rx_buffer);
 
-  std::cout << "timestamp = " << get_timestamp(rx_buffer, received_bytes) << std::endl;
-  const auto fields = deserialize(rx_buffer, received_bytes);
+  std::cout << "timestamp = " << get_timestamp(rx_buffer) << std::endl;
+  const auto fields = deserialize(rx_buffer, received_bytes, _parameter);
   std::cout << "read " << fields.size() << " fields" << std::endl;
+
+  const auto stamp = get_timestamp(rx_buffer);
+
+  // if timestamp has not changed than the state has also not changed
+  if (stamp == _stamp_last_field_state) {
+    // no state change --> no publishing
+    return;
+  }
+  // else: state changed --> publish it
 
   edu_perception::msg::LidarFieldEvaluation msg;
   msg.header.frame_id = "";
   msg.header.stamp = get_clock()->now();
   msg.fields = std::move(fields);
+  _stamp_last_field_state = stamp;
 
   _pub_field_evaluation->publish(msg);
   // std::cout << "rx buffer: ";
