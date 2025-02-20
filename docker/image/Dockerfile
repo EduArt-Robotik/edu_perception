@@ -27,8 +27,8 @@ USER $USER
 # set up ros workspace
 COPY --chown=$USER ./edu_perception /home/$USER/ros/src/edu_perception
 RUN cd /home/$USER/ros/src/edu_perception \
-    && chown user:user -R /home/$USER/ros/src/edu_perception \
-    && git submodule update --init --recursive
+    && chown user:user -R /home/$USER/ros/src/edu_perception
+    # && git submodule update --init --recursive
 
 # build EduArt packages nodes
 RUN source /opt/ros/$ROS_DISTRO/setup.bash \
