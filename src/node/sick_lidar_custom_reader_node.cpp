@@ -109,7 +109,7 @@ SickLidarCustomReader::Parameter SickLidarCustomReader::get_parameter(
   parameter.field_index = ros_node.get_parameter("field_index").as_integer_array();
   parameter.field_name  = ros_node.get_parameter("field_name").as_string_array();
 
-  return default_parameter;
+  return parameter;
 }
 
 SickLidarCustomReader::SickLidarCustomReader()
