@@ -1,14 +1,14 @@
 ## Build Library
-add_library(edu_perception
-  stereo_inference.cpp
+add_library(eduart_perception
+  # stereo_inference.cpp
   qr_code_detector.cpp
   pose_estimation.cpp
   transform.cpp
   # h264_decoder.cpp
 )
-target_link_libraries(edu_perception
+target_link_libraries(eduart_perception
   Eigen3::Eigen
-  depthai::core
+  # depthai::core
   ${OpenCV_LIBS}
   zbar
   avcodec
@@ -16,10 +16,10 @@ target_link_libraries(edu_perception
   swscale
   avutil
 )
-target_include_directories(edu_perception PUBLIC
+target_include_directories(eduart_perception PUBLIC
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-ament_target_dependencies(edu_perception
+ament_target_dependencies(eduart_perception
   geometry_msgs
 )
