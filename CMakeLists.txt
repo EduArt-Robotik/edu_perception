@@ -26,6 +26,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(apriltag_msgs REQUIRED)
 find_package(message_filters REQUIRED)
+find_package(zbar_ros_interfaces REQUIRED)
 
 ## Build Defined ROS Messages
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -55,7 +56,7 @@ install(
     # qr_detection_and_pose_estimation
     # oak_d_camera
     apriltag_draw
-    apriltag_pose_estimation
+    marker_pose_estimation
     sick_lidar_custom_reader
   EXPORT export_${PROJECT_NAME}
   LIBRARY DESTINATION lib

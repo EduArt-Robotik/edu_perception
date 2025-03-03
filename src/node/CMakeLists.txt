@@ -58,24 +58,25 @@ ament_target_dependencies(apriltag_draw
   "message_filters"
 )
 
-### Apriltag Pose Estimation
-add_executable(apriltag_pose_estimation
-  apriltag_pose_estimation_node.cpp
+### Marker Pose Estimation
+add_executable(marker_pose_estimation
+  marker_pose_estimation_node.cpp
 )
-target_include_directories(apriltag_pose_estimation PUBLIC
+target_include_directories(marker_pose_estimation PUBLIC
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
-target_link_libraries(apriltag_pose_estimation
+target_link_libraries(marker_pose_estimation
   ${OpenCV_LIBS}
   Eigen3::Eigen
 )
-ament_target_dependencies(apriltag_pose_estimation
+ament_target_dependencies(marker_pose_estimation
   "rclcpp"
   "sensor_msgs"
   "apriltag_msgs"
   "tf2_ros"
   "tf2_geometry_msgs"
+  "zbar_ros_interfaces"
 )
 
 
