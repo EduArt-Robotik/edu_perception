@@ -63,9 +63,9 @@ MarkerPoseEstimation::Parameter MarkerPoseEstimation::get_parameter(
 {
   Parameter parameter;
 
-  ros_node.declare_parameter<std::vector<std::string>>("marker.id");
-  ros_node.declare_parameter<std::vector<float>>("marker.size");
-  ros_node.declare_parameter<std::vector<std::string>>("marker.frame_id");
+  ros_node.declare_parameter<std::vector<std::string>>("marker.id", std::vector<std::string>());
+  ros_node.declare_parameter<std::vector<float>>("marker.size", std::vector<float>());
+  ros_node.declare_parameter<std::vector<std::string>>("marker.frame_id", std::vector<std::string>());
   ros_node.declare_parameter<float>("std_dev.position", default_parameter.std_dev.position);
   ros_node.declare_parameter<float>("std_dev.orientation", default_parameter.std_dev.orientation);
   ros_node.declare_parameter<bool>("transform_into_world", default_parameter.transform_into_world);
@@ -76,8 +76,8 @@ MarkerPoseEstimation::Parameter MarkerPoseEstimation::get_parameter(
   const auto sizes = ros_node.get_parameter("marker.size").as_double_array();
   const auto frame_id = ros_node.get_parameter("marker.frame_id").as_string_array();
 
-  if (ids.size() != sizes.size()) {
-    throw std::invalid_argument("MarkerPoseEstimation: the ids and sizes must have same size!");
+  if (ids.size() != sizes.size() || ids.size() != frame_id.size()) {
+    throw std::invalid_argument("MarkerPoseEstimation: the ids, sizes and frame_id must have same size!");
   }
 
   for (std::size_t i = 0; i < ids.size(); ++i) {
@@ -95,7 +95,7 @@ MarkerPoseEstimation::Parameter MarkerPoseEstimation::get_parameter(
 }
 
 MarkerPoseEstimation::MarkerPoseEstimation()
-  : rclcpp::Node("apriltag_pose_estimation")
+  : rclcpp::Node("marker_pose_estimation")
   , _parameter(get_parameter(*this, _parameter))
   , _camera_matrix(3, 3, CV_64FC1, cv::Scalar(0.0))
   , _tf_buffer(std::make_unique<tf2_ros::Buffer>(get_clock()))
@@ -218,6 +218,7 @@ void MarkerPoseEstimation::callbackQrCodeDetection(std::shared_ptr<const zbar_ro
     // apriltag was detected at message time --> stamp from message, but there isn't a header...
     pose.header.stamp = get_clock()->now();
     // estimate object pose
+    std::cout << "got marker id = " << marker_id << std::endl;
     pose.pose.pose = estimatePose(marker_corners, _marker_objet_point.at(marker_id));
 
     if (_parameter.transform_into_world) {
