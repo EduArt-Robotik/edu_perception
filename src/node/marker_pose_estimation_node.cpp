@@ -104,10 +104,10 @@ MarkerPoseEstimation::MarkerPoseEstimation()
   // calculate required marker object data
   for (const auto& [marker_id, marker_size] : _parameter.marker_size) {
     _marker_objet_point[marker_id] = cv::Mat(4, 1, CV_32FC3);
-    _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[0] = cv::Vec3f(-marker_size / 2.0f,  marker_size / 2.0f, 0.0f);
-    _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[1] = cv::Vec3f( marker_size / 2.0f,  marker_size / 2.0f, 0.0f);
-    _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[2] = cv::Vec3f( marker_size / 2.0f, -marker_size / 2.0f, 0.0f);
-    _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[3] = cv::Vec3f(-marker_size / 2.0f, -marker_size / 2.0f, 0.0f);
+    _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[0] = cv::Vec3f(-marker_size / 2.0f,  marker_size / 2.0f, 0.0f); // bottom left
+    _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[1] = cv::Vec3f( marker_size / 2.0f,  marker_size / 2.0f, 0.0f); // bottom right
+    _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[2] = cv::Vec3f( marker_size / 2.0f, -marker_size / 2.0f, 0.0f); // top right
+    _marker_objet_point[marker_id].ptr<cv::Vec3f>(0)[3] = cv::Vec3f(-marker_size / 2.0f, -marker_size / 2.0f, 0.0f); // top left
   }
 
   // bring up ROS communication
@@ -136,6 +136,7 @@ MarkerPoseEstimation::~MarkerPoseEstimation()
 
 }
 
+// \todo changed a lot for qr code input. Seems I did some mistakes last time. Proof if implementation is still correct for apriltag!
 void MarkerPoseEstimation::callbackApriltagDetection(std::shared_ptr<const apriltag_msgs::msg::AprilTagDetectionArray> msg)
 {
   if (_camera_info == nullptr) {
@@ -205,10 +206,10 @@ void MarkerPoseEstimation::callbackQrCodeDetection(std::shared_ptr<const zbar_ro
   try {
     const auto marker_id = msg->data;
     std::vector<cv::Point2d> marker_corners = {
-      cv::Point2d(msg->points[0].x, msg->points[0].y),
-      cv::Point2d(msg->points[1].x, msg->points[1].y),
-      cv::Point2d(msg->points[2].x, msg->points[2].y),
-      cv::Point2d(msg->points[3].x, msg->points[3].y)
+      cv::Point2d(msg->points[1].x, msg->points[1].y), // bottom left
+      cv::Point2d(msg->points[2].x, msg->points[2].y), // bottom right
+      cv::Point2d(msg->points[3].x, msg->points[3].y), // top right
+      cv::Point2d(msg->points[0].x, msg->points[0].y)  // top left
     };
    
     // publishing result
@@ -218,7 +219,6 @@ void MarkerPoseEstimation::callbackQrCodeDetection(std::shared_ptr<const zbar_ro
     // apriltag was detected at message time --> stamp from message, but there isn't a header...
     pose.header.stamp = get_clock()->now();
     // estimate object pose
-    std::cout << "got marker id = " << marker_id << std::endl;
     pose.pose.pose = estimatePose(marker_corners, _marker_objet_point.at(marker_id));
 
     if (_parameter.transform_into_world) {
@@ -261,7 +261,7 @@ geometry_msgs::msg::Pose MarkerPoseEstimation::estimatePose(const std::vector<cv
   // switch axis to transform into robot coordinate system (x in front)
   pose.position.x =  translation[2];
   pose.position.y = -translation[0];
-  pose.position.z =  translation[1];
+  pose.position.z = -translation[1];
 
   // orientation
   // switch axis to transform into robot coordinate system (x in front)
