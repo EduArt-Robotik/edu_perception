@@ -16,6 +16,7 @@ RUN apt-get update \
     ros-$ROS_DISTRO-aruco-opencv \
     ros-$ROS_DISTRO-aruco-opencv-msgs \
     ros-$ROS_DISTRO-apriltag-ros \
+    ros-$ROS_DISTRO-zbar-ros \
     ros-$ROS_DISTRO-usb-cam \
     libzbar-dev \
     libusb-1.0-0-dev \
