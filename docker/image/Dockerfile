@@ -1,4 +1,4 @@
-FROM eduartrobotik/eduart-robot:1.0.0
+FROM eduartrobotik/eduart-robot:1.0.2
 
 # using bash
 SHELL ["/bin/bash", "-c"]
