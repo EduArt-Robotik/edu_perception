@@ -33,10 +33,10 @@ if (TARGET depthai::core)
 endif()
 
 ### Creating Library
-add_library(edu_perception
+add_library(eduart_perception SHARED
   ${SOURCES_EDU_PERCEPTION}
 )
-target_link_libraries(edu_perception
+target_link_libraries(eduart_perception
   ${LIBS_EDU_PERCEPTION}
 )
 target_include_directories(eduart_perception PUBLIC

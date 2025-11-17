@@ -45,8 +45,9 @@ add_subdirectory(src/test)
 
 ## Installing of Content
 set(TARGETS_EDU_PERCEPTION
+  eduart_perception
   apriltag_draw
-  apriltag_pose_estimation  
+  marker_pose_estimation  
 )
 if(TARGET depthai::core)
   set(TARGETS_EDU_PERCEPTION
