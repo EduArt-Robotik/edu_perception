@@ -1,20 +1,43 @@
 ## Build Library
-add_library(eduart_perception
-  # stereo_inference.cpp
+### Collecting Source Files
+set(SOURCES_EDU_PERCEPTION
   qr_code_detector.cpp
   pose_estimation.cpp
   transform.cpp
-  # h264_decoder.cpp
 )
-target_link_libraries(eduart_perception
+
+if(TARGET depthai::core)
+  set(SOURCES_EDU_PERCEPTION
+    ${SOURCES_EDU_PERCEPTION}
+    stereo_inference.cpp
+    h264_decoder.cpp
+  )
+endif()
+
+### Collecting Libs
+set(LIBS_EDU_PERCEPTION
   Eigen3::Eigen
-  # depthai::core
   ${OpenCV_LIBS}
   zbar
-  avcodec
-  avformat
-  swscale
-  avutil
+)
+
+if (TARGET depthai::core)
+  set(LIBS_EDU_PERCEPTION
+    ${LIBS_EDU_PERCEPTION}
+    depthai::core
+    avcodec
+    avformat
+    swscale
+    avutil
+  )
+endif()
+
+### Creating Library
+add_library(eduart_perception SHARED
+  ${SOURCES_EDU_PERCEPTION}
+)
+target_link_libraries(eduart_perception
+  ${LIBS_EDU_PERCEPTION}
 )
 target_include_directories(eduart_perception PUBLIC
   $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include>
