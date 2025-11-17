@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.8)
 
 # Add depthai-core dependency
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/depthai-core EXCLUDE_FROM_ALL)
+# add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/depthai-core EXCLUDE_FROM_ALL)
 
 # project start here
 project(edu_perception)
@@ -14,6 +14,7 @@ endif()
 # find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_gtest REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -24,6 +25,18 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(apriltag_msgs REQUIRED)
 find_package(message_filters REQUIRED)
+find_package(zbar_ros_interfaces REQUIRED)
+
+## Build Defined ROS Messages
+rosidl_generate_interfaces(${PROJECT_NAME}
+# Messages
+  "msg/LidarField.msg"
+  "msg/LidarFieldEvaluation.msg"
+  DEPENDENCIES
+  std_msgs
+)
+# Create a target that can be used by all buildiung targets when the custom message are required for them.
+rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
 # Building Subdirectories
 add_subdirectory(src/lib)
@@ -31,6 +44,19 @@ add_subdirectory(src/node)
 add_subdirectory(src/test)
 
 ## Installing of Content
+set(TARGETS_EDU_PERCEPTION
+  eduart_perception
+  apriltag_draw
+  marker_pose_estimation  
+)
+if(TARGET depthai::core)
+  set(TARGETS_EDU_PERCEPTION
+    ${TARGETS_EDU_PERCEPTION}
+    qr_detection_and_pose_estimation
+    oak_d_camera
+  )
+endif()
+
 install(
   DIRECTORY
     launch
@@ -39,10 +65,7 @@ install(
 )
 install(
   TARGETS
-    qr_detection_and_pose_estimation
-    # oak_d_camera
-    apriltag_draw
-    apriltag_pose_estimation
+    ${TARGETS_EDU_PERCEPTION}
   EXPORT export_${PROJECT_NAME}
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}

@@ -1,4 +1,4 @@
-FROM eduartrobotik/eduart-fleet:0.3.0
+FROM eduartrobotik/eduart-robot:1.0.0
 
 # using bash
 SHELL ["/bin/bash", "-c"]
@@ -16,6 +16,7 @@ RUN apt-get update \
     ros-$ROS_DISTRO-aruco-opencv \
     ros-$ROS_DISTRO-aruco-opencv-msgs \
     ros-$ROS_DISTRO-apriltag-ros \
+    ros-$ROS_DISTRO-zbar-ros \
     ros-$ROS_DISTRO-usb-cam \
     libzbar-dev \
     libusb-1.0-0-dev \
@@ -27,8 +28,8 @@ USER $USER
 # set up ros workspace
 COPY --chown=$USER ./edu_perception /home/$USER/ros/src/edu_perception
 RUN cd /home/$USER/ros/src/edu_perception \
-    && chown user:user -R /home/$USER/ros/src/edu_perception \
-    && git submodule update --init --recursive
+    && chown user:user -R /home/$USER/ros/src/edu_perception
+    # && git submodule update --init --recursive
 
 # build EduArt packages nodes
 RUN source /opt/ros/$ROS_DISTRO/setup.bash \
