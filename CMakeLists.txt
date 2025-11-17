@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.8)
 
 # Add depthai-core dependency
 # add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/depthai-core EXCLUDE_FROM_ALL)
-# removed because it makes problems all the time...
 
 # project start here
 project(edu_perception)
@@ -45,6 +44,18 @@ add_subdirectory(src/node)
 add_subdirectory(src/test)
 
 ## Installing of Content
+set(TARGETS_EDU_PERCEPTION
+  apriltag_draw
+  apriltag_pose_estimation  
+)
+if(TARGET depthai::core)
+  set(TARGETS_EDU_PERCEPTION
+    ${TARGETS_EDU_PERCEPTION}
+    qr_detection_and_pose_estimation
+    oak_d_camera
+  )
+endif()
+
 install(
   DIRECTORY
     launch
@@ -53,11 +64,7 @@ install(
 )
 install(
   TARGETS
-    # qr_detection_and_pose_estimation
-    # oak_d_camera
-    apriltag_draw
-    marker_pose_estimation
-    sick_lidar_custom_reader
+    ${TARGETS_EDU_PERCEPTION}
   EXPORT export_${PROJECT_NAME}
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
