@@ -47,7 +47,8 @@ add_subdirectory(src/test)
 set(TARGETS_EDU_PERCEPTION
   eduart_perception
   apriltag_draw
-  marker_pose_estimation  
+  marker_pose_estimation
+  sick_lidar_custom_reader
 )
 if(TARGET depthai::core)
   set(TARGETS_EDU_PERCEPTION
