@@ -70,6 +70,13 @@ install(
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
+# Install Python scripts
+install(
+  PROGRAMS
+    script/pf_rfid_reader_node.py
+  DESTINATION lib/${PROJECT_NAME}
+  RENAME pf_rfid_reader
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
