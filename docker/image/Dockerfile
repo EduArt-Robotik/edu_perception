@@ -1,4 +1,4 @@
-FROM eduartrobotik/eduart-robot:1.0.2
+FROM eduartrobotik/eduart-robot:1.1.0
 
 # using bash
 SHELL ["/bin/bash", "-c"]
@@ -10,6 +10,7 @@ USER root
 
 # Install Dependencies for Perception Package
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y \
     ros-$ROS_DISTRO-geometry-msgs \
     ros-$ROS_DISTRO-cv-bridge \
@@ -20,10 +21,18 @@ RUN apt-get update \
     ros-$ROS_DISTRO-usb-cam \
     libzbar-dev \
     libusb-1.0-0-dev \
+    python3-venv \
     && apt-get clean
 
 # work with user user
 USER $USER
+
+# set virtual environment for RFID tag reader node
+RUN python3 -m venv /home/$USER/rfid_venv \
+    && source /home/$USER/rfid_venv/bin/activate \
+    && pip3 install --upgrade pip \
+    && pip3 install requests PyYAML jinja2 setuptools typeguard numpy
+
 
 # set up ros workspace
 COPY --chown=$USER ./edu_perception /home/$USER/ros/src/edu_perception

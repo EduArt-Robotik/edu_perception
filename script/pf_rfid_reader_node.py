@@ -24,6 +24,14 @@ class PfRfidReaderNode(Node):
     self.parameter = self.get_parameters(Parameter())
 
     # bring up REST API connection
+    self.authenticate()
+
+    # starting timer for periodic RFID tag reading
+    self.pub_rfid_tag = self.create_publisher(String, 'rfid_tag', 10)
+    self.timer = self.create_timer(1.0, self.read_rfid_tag)
+
+
+  def authenticate(self):
     self.session = requests.Session()
 
     ## authenticate with the RFID reader REST API
@@ -59,11 +67,6 @@ class PfRfidReaderNode(Node):
     response.raise_for_status()
 
 
-    # starting timer for periodic RFID tag reading
-    self.pub_rfid_tag = self.create_publisher(String, 'rfid_tag', 10)
-    self.timer = self.create_timer(1.0, self.read_rfid_tag)
-
-
   def read_rfid_tag(self):
     self.get_logger().info("reading RFID tag...")
 
@@ -86,6 +89,8 @@ class PfRfidReaderNode(Node):
 
     except Exception as e:
       self.get_logger().error(f"failed to read RFID tag: {e}")
+      # re-authenticate, most likely due to expired token
+      self.authenticate()
       return
 
 
@@ -103,7 +108,6 @@ class PfRfidReaderNode(Node):
     parameter.password = self.get_parameter('password').get_parameter_value().string_value
 
     return parameter
-
 
 
 def main(args=None):
