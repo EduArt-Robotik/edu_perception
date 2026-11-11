@@ -4,6 +4,7 @@ Reads RFID tags via IC-KP2-2HB40-2V1D module connected over ethernet.
 """
 import rclpy
 from rclpy.node import Node, SetParametersResult, get_logger, Publisher
+from rclpy.qos import DurabilityPolicy, HistoryPolicy, QoSProfile, ReliabilityPolicy
 from std_msgs.msg import String
 
 from dataclasses import dataclass
@@ -12,13 +13,14 @@ import requests
 
 @dataclass
 class Parameter:
-  ip_address: str = "192.168.42.198"
+  ip_address: str = "192.168.0.20"
   user: str = "admin"
   password: str = "a327-3e9e-dc44-33d4-22b8-77b6"
 
 class PfRfidReaderNode(Node):
   def __init__(self):
     super().__init__('pf_rfid_reader_node')
+    self.last_tag = ''
 
     # gather parameters from ROS2 parameter server
     self.parameter = self.get_parameters(Parameter())
@@ -27,7 +29,13 @@ class PfRfidReaderNode(Node):
     self.authenticate()
 
     # starting timer for periodic RFID tag reading
-    self.pub_rfid_tag = self.create_publisher(String, 'rfid_tag', 10)
+    qos_profile = QoSProfile(
+      durability=DurabilityPolicy.TRANSIENT_LOCAL,
+      reliability=ReliabilityPolicy.RELIABLE,
+      history=HistoryPolicy.KEEP_LAST,
+      depth=1,
+    )    
+    self.pub_rfid_tag = self.create_publisher(String, 'rfid_tag', qos_profile)
     self.timer = self.create_timer(1.0, self.read_rfid_tag)
 
 
@@ -76,15 +84,18 @@ class PfRfidReaderNode(Node):
         timeout=10,
       )
       response.raise_for_status()
-
-      tags = response.json()["data"]
-      self.get_logger().info(f"tags: {tags}")
+      tag = response.json()["data"][0]["UII"] if response.json()["data"] else ''
+      self.get_logger().info(f"tag: {tag}")
 
       # publish each tag via ROS2 topic
-      for tag in tags:
-        msg = String()
-        msg.data = tag["UII"]
-        self.pub_rfid_tag.publish(msg)
+      if tag == self.last_tag:
+        # already published this tag or empty tag --> skip
+        return
+
+      self.last_tag = tag
+      msg = String()
+      msg.data = tag
+      self.pub_rfid_tag.publish(msg)
 
 
     except Exception as e:
